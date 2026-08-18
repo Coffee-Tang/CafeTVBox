@@ -3,6 +3,7 @@ package dev.anilbeesetti.nextplayer.navigation
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.feature.live.navigation.LiveChannelsRoute
 import dev.anilbeesetti.nextplayer.feature.playlist.navigation.PlaylistDetailRoute
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -10,15 +11,61 @@ import org.junit.Test
 class TopLevelNavigationTest {
 
     @Test
-    fun playlistsIsTheMiddleTopLevelDestination() {
+    fun mediaIsTheStartTopLevelDestination() {
         assertEquals(
             listOf(
                 TopLevelDestination.MEDIA,
                 TopLevelDestination.PLAYLISTS,
                 TopLevelDestination.NETWORK,
+                TopLevelDestination.LIVE,
             ),
             TopLevelDestination.entries,
         )
+    }
+
+    @Test
+    fun switchingToLivePreservesChannelStack() {
+        val stacks = TopLevelDestination.entries.associate { destination ->
+            destination.route to NavBackStack<NavKey>(destination.route)
+        }
+        val state = TopLevelNavState(
+            destinations = TopLevelDestination.entries,
+            backStacks = stacks,
+            selectedIndexState = mutableIntStateOf(0),
+        )
+        val liveStack = stacks.getValue(TopLevelDestination.LIVE.route)
+
+        state.switchTo(TopLevelDestination.LIVE.route)
+        liveStack += LiveChannelsRoute(3)
+        state.switchTo(TopLevelDestination.MEDIA.route)
+        state.switchTo(TopLevelDestination.LIVE.route)
+
+        assertEquals(
+            listOf(TopLevelDestination.LIVE.route, LiveChannelsRoute(3)),
+            state.currentStack,
+        )
+    }
+
+    @Test
+    fun backFromLiveTabFallsThroughToStartTab() {
+        val stacks = TopLevelDestination.entries.associate { destination ->
+            destination.route to NavBackStack<NavKey>(destination.route)
+        }
+        val state = TopLevelNavState(
+            destinations = TopLevelDestination.entries,
+            backStacks = stacks,
+            selectedIndexState = mutableIntStateOf(0),
+        )
+        val liveStack = stacks.getValue(TopLevelDestination.LIVE.route)
+
+        state.switchTo(TopLevelDestination.LIVE.route)
+        liveStack += LiveChannelsRoute(3)
+
+        state.goBack()
+        assertEquals(listOf<NavKey>(TopLevelDestination.LIVE.route), state.currentStack)
+
+        state.goBack()
+        assertEquals(TopLevelDestination.MEDIA.route, state.topLevelRoute)
     }
 
     @Test

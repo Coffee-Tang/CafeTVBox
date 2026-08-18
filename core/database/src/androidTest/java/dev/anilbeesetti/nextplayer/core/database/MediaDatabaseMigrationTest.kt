@@ -65,6 +65,45 @@ class MediaDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate9To10_addsLiveSourceTableAndKeepsExistingData() {
+        helper.createDatabase(TEST_DB, 9).apply {
+            execSQL(
+                "INSERT INTO network_connection " +
+                    "(id,name,protocol,host,port,path,username,password,use_https,created_at," +
+                    "authentication,private_key_file_name,private_key_passphrase,host_key_fingerprint) " +
+                    "VALUES (1,'NAS','SMB','10.0.2.2',445,'media','alice','secret',0,123," +
+                    "'PASSWORD','','','')",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            10,
+            true,
+            MediaDatabase.MIGRATION_9_10,
+        ).use { db ->
+            db.execSQL(
+                "INSERT INTO live_source (id,name,url,created_at) " +
+                    "VALUES (1,'IPTV','https://example.com/tv.m3u',456)",
+            )
+            db.query("SELECT * FROM live_source WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("IPTV", cursor.getString(cursor.getColumnIndexOrThrow("name")))
+                assertEquals(
+                    "https://example.com/tv.m3u",
+                    cursor.getString(cursor.getColumnIndexOrThrow("url")),
+                )
+                assertEquals(456L, cursor.getLong(cursor.getColumnIndexOrThrow("created_at")))
+            }
+            db.query("SELECT name FROM network_connection WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("NAS", cursor.getString(0))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

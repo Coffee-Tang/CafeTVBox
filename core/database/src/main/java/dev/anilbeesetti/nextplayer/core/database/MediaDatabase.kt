@@ -5,10 +5,12 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.anilbeesetti.nextplayer.core.database.dao.HiddenVideoDao
+import dev.anilbeesetti.nextplayer.core.database.dao.LiveSourceDao
 import dev.anilbeesetti.nextplayer.core.database.dao.MediumStateDao
 import dev.anilbeesetti.nextplayer.core.database.dao.NetworkConnectionDao
 import dev.anilbeesetti.nextplayer.core.database.dao.PlaylistDao
 import dev.anilbeesetti.nextplayer.core.database.entities.HiddenVideoEntity
+import dev.anilbeesetti.nextplayer.core.database.entities.LiveSourceEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.MediumStateEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.NetworkConnectionEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.PlaylistEntity
@@ -21,8 +23,9 @@ import dev.anilbeesetti.nextplayer.core.database.entities.PlaylistItemEntity
         NetworkConnectionEntity::class,
         PlaylistEntity::class,
         PlaylistItemEntity::class,
+        LiveSourceEntity::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class MediaDatabase : RoomDatabase() {
@@ -34,6 +37,8 @@ abstract class MediaDatabase : RoomDatabase() {
     abstract fun networkConnectionDao(): NetworkConnectionDao
 
     abstract fun playlistDao(): PlaylistDao
+
+    abstract fun liveSourceDao(): LiveSourceDao
 
     companion object {
         const val DATABASE_NAME = "media_db"
@@ -300,6 +305,21 @@ abstract class MediaDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE `network_connection` " +
                         "ADD COLUMN `host_key_fingerprint` TEXT NOT NULL DEFAULT ''",
+                )
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `live_source` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `url` TEXT NOT NULL,
+                        `created_at` INTEGER NOT NULL
+                    )
+                    """,
                 )
             }
         }

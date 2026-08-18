@@ -392,6 +392,31 @@
     <string name="retry">Retry</string>
     <string name="edit">Edit</string>
 
+    <!-- Live TV -->
+    <string name="live_tv">Live TV</string>
+    <string name="add_playlist_source">Add playlist</string>
+    <string name="edit_playlist_source">Edit playlist</string>
+    <string name="delete_playlist_source">Delete playlist</string>
+    <string name="delete_playlist_source_confirmation">Remove \"%1$s\"?</string>
+    <string name="playlist_url">Playlist URL (m3u / m3u8)</string>
+    <string name="playlist_url_description">The playlist is downloaded and checked before it is saved.</string>
+    <string name="verifying_playlist">Checking playlist…</string>
+    <string name="playlist_source_error">Couldn\'t load playlist</string>
+    <string name="playlist_source_error_description">Check the URL and your network connection, then try again.</string>
+    <string name="no_playlist_sources_title">No playlists yet</string>
+    <string name="no_playlist_sources_description">Add an m3u or m3u8 playlist URL to browse and watch live channels.</string>
+    <string name="preset_sources">Common playlists</string>
+    <string name="preset_iptv_org_chinese">iptv-org · Chinese channels</string>
+    <string name="preset_iptv_org_chinese_description">Open-source list, around 200 Chinese-language channels.</string>
+    <string name="preset_iptv_org_china">iptv-org · China</string>
+    <string name="preset_iptv_org_china_description">Open-source list, around 140 channels from China.</string>
+    <string name="preset_fanmingming_ipv6">fanmingming · IPv6</string>
+    <string name="preset_fanmingming_ipv6_description">Around 80 CCTV and provincial channels. Needs a public IPv6 network.</string>
+    <string name="ungrouped_channels">Ungrouped</string>
+    <string name="channel_count">%1$d channels</string>
+    <string name="refresh">Refresh</string>
+    <string name="ok">OK</string>
+
     <!-- Copy / Move -->
     <string name="copy">Copy</string>
     <string name="move">Move</string>

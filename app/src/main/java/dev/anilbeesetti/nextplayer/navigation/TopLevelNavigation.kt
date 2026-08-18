@@ -46,6 +46,7 @@ import androidx.navigation3.scene.Scene
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
+import dev.anilbeesetti.nextplayer.feature.live.navigation.LiveRoute
 import dev.anilbeesetti.nextplayer.feature.network.navigation.NetworkRoute
 import dev.anilbeesetti.nextplayer.feature.playlist.navigation.PlaylistListRoute
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.MediaPickerRoute
@@ -62,6 +63,7 @@ enum class TopLevelDestination(
     MEDIA(MediaPickerRoute(), NextIcons.Home, R.string.home),
     PLAYLISTS(PlaylistListRoute, NextIcons.Playlist, R.string.playlists),
     NETWORK(NetworkRoute, NextIcons.Network, R.string.network),
+    LIVE(LiveRoute, NextIcons.Live, R.string.live_tv),
 }
 
 @Composable

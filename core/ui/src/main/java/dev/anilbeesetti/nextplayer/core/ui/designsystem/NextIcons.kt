@@ -52,6 +52,7 @@ import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material.icons.rounded.Dns
 import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.LiveTv
 import androidx.compose.material.icons.rounded.LocalMovies
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.MiscellaneousServices
@@ -129,6 +130,7 @@ object NextIcons {
     val Language = Icons.Rounded.Translate
     val Length = Icons.Rounded.Straighten
     val Link = Icons.Rounded.Link
+    val Live = Icons.Rounded.LiveTv
     val Location = Icons.Rounded.LocationOn
     val Movie = Icons.Rounded.LocalMovies
     val Pip = Icons.Rounded.PictureInPictureAlt

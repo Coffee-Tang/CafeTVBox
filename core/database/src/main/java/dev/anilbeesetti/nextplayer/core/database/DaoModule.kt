@@ -19,4 +19,7 @@ object DaoModule {
 
     @Provides
     fun providePlaylistDao(db: MediaDatabase) = db.playlistDao()
+
+    @Provides
+    fun provideLiveSourceDao(db: MediaDatabase) = db.liveSourceDao()
 }

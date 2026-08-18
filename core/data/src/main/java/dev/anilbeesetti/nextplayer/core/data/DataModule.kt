@@ -4,6 +4,10 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.anilbeesetti.nextplayer.core.data.repository.HttpLiveChannelRepository
+import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
+import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
+import dev.anilbeesetti.nextplayer.core.data.repository.LocalLiveSourceRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LocalMediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LocalNetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LocalPreferencesRepository
@@ -72,4 +76,16 @@ interface DataModule {
     fun bindsCredentialCipher(
         credentialCipher: KeystoreCredentialCipher,
     ): CredentialCipher
+
+    @Binds
+    @Singleton
+    fun bindsLiveSourceRepository(
+        liveSourceRepository: LocalLiveSourceRepository,
+    ): LiveSourceRepository
+
+    @Binds
+    @Singleton
+    fun bindsLiveChannelRepository(
+        liveChannelRepository: HttpLiveChannelRepository,
+    ): LiveChannelRepository
 }

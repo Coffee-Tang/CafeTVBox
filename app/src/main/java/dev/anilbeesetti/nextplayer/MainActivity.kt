@@ -42,6 +42,7 @@ import dev.anilbeesetti.nextplayer.navigation.NextNavigationBar
 import dev.anilbeesetti.nextplayer.navigation.NextNavigationRail
 import dev.anilbeesetti.nextplayer.navigation.TopLevelDestination
 import dev.anilbeesetti.nextplayer.navigation.isNavigationBetweenTopLevelDestinations
+import dev.anilbeesetti.nextplayer.navigation.liveNavGraph
 import dev.anilbeesetti.nextplayer.navigation.mediaNavGraph
 import dev.anilbeesetti.nextplayer.navigation.networkNavGraph
 import dev.anilbeesetti.nextplayer.navigation.playlistNavGraph
@@ -130,6 +131,7 @@ class MainActivity : ComponentActivity() {
                     val mediaStack = navState.backStacks.getValue(TopLevelDestination.MEDIA.route)
                     val playlistStack = navState.backStacks.getValue(TopLevelDestination.PLAYLISTS.route)
                     val networkStack = navState.backStacks.getValue(TopLevelDestination.NETWORK.route)
+                    val liveStack = navState.backStacks.getValue(TopLevelDestination.LIVE.route)
 
                     // Media and network entries navigate within their own tab's stack; settings is
                     // shared, so it navigates within whichever tab it was opened from (the current one).
@@ -137,6 +139,7 @@ class MainActivity : ComponentActivity() {
                         mediaNavGraph(context = this@MainActivity, backStack = mediaStack)
                         playlistNavGraph(context = this@MainActivity, backStack = playlistStack)
                         networkNavGraph(context = this@MainActivity, backStack = networkStack)
+                        liveNavGraph(context = this@MainActivity, backStack = liveStack)
                         settingsNavGraph(backStack = navState.currentStack)
                     }
 
