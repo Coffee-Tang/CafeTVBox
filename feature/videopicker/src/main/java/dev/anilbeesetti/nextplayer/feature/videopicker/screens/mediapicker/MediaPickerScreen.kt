@@ -119,6 +119,7 @@ import dev.anilbeesetti.nextplayer.core.ui.preview.DayNightPreview
 import dev.anilbeesetti.nextplayer.core.ui.preview.VideoPickerPreviewParameterProvider
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.CenterCircularProgressBar
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.ContinueWatchingRow
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaInfoDialog
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaView
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.NoVideosFound
@@ -165,14 +166,17 @@ internal fun MediaPickerScreen(
     val fabFocusRequester = remember { FocusRequester() }
     val firstActionFocusRequester = remember { FocusRequester() }
     var restoredFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val continueWatchingFocusRequester = remember { FocusRequester() }
     val hasMedia = (uiState.mediaDataState as? DataState.Success)?.value
         ?.let { it.folders.isNotEmpty() || it.videos.isNotEmpty() } == true
+    val showContinueWatching = uiState.folderName == null && uiState.recentlyPlayed.isNotEmpty()
 
-    // On TV, pressing down from any top-bar button lands on the first list item.
-    val topBarDownModifier = if (isTv && hasMedia) {
-        Modifier.focusProperties { down = firstItemFocusRequester }
-    } else {
-        Modifier
+    // On TV, pressing down from any top-bar button lands on the topmost item of the content.
+    val topBarDownModifier = when {
+        !isTv -> Modifier
+        showContinueWatching -> Modifier.focusProperties { down = continueWatchingFocusRequester }
+        hasMedia -> Modifier.focusProperties { down = firstItemFocusRequester }
+        else -> Modifier
     }
     val permissionState = rememberPermissionState(permission = storagePermission)
     var wasPermissionGranted by remember { mutableStateOf(permissionState.status.isGranted) }
@@ -503,31 +507,43 @@ internal fun MediaPickerScreen(
                         bottom = scaffoldPadding.calculateBottomPadding(),
                     )
                     val mediaHolder = uiState.mediaDataState.value
-                    if (mediaHolder == null || mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty()) {
-                        NoVideosFound(contentPadding = updatedScaffoldPadding)
-                    } else {
-                        MediaView(
-                            recentlyPlayedVideo = uiState.recentlyPlayedVideo,
-                            recentlyPlayedFolder = uiState.recentlyPlayedFolder,
-                            mediaHolder = mediaHolder,
-                            preferences = uiState.preferences,
-                            onFolderClick = { onAction(MediaPickerAction.OnFolderClick(it)) },
-                            onVideoClick = { onAction(MediaPickerAction.OnPlayVideo(it)) },
-                            selectionManager = selectionManager,
-                            lazyGridState = lazyGridState,
-                            firstItemFocusRequester = if (isTv) firstItemFocusRequester else null,
-                            lastItemFocusRequester = if (isTv) lastItemFocusRequester else null,
-                            restoredFocusKey = restoredFocusKey,
-                            onItemFocused = { restoredFocusKey = it },
-                            // Down from the last item goes to the FAB normally, or to the selection
-                            // action bar while selecting (the FAB is hidden then).
-                            lastItemDownFocusRequester = when {
-                                !isTv -> null
-                                selectionManager.isInSelectionMode -> firstActionFocusRequester
-                                else -> fabFocusRequester
-                            },
-                            contentPadding = updatedScaffoldPadding,
-                        )
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        if (showContinueWatching) {
+                            ContinueWatchingRow(
+                                items = uiState.recentlyPlayed,
+                                onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
+                                firstItemFocusRequester = if (isTv) continueWatchingFocusRequester else null,
+                                downFocusRequester = if (isTv && hasMedia) firstItemFocusRequester else null,
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            if (mediaHolder == null || mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty()) {
+                                NoVideosFound(contentPadding = updatedScaffoldPadding)
+                            } else {
+                                MediaView(
+                                    recentlyPlayedVideo = uiState.recentlyPlayedVideo,
+                                    recentlyPlayedFolder = uiState.recentlyPlayedFolder,
+                                    mediaHolder = mediaHolder,
+                                    preferences = uiState.preferences,
+                                    onFolderClick = { onAction(MediaPickerAction.OnFolderClick(it)) },
+                                    onVideoClick = { onAction(MediaPickerAction.OnPlayVideo(it)) },
+                                    selectionManager = selectionManager,
+                                    lazyGridState = lazyGridState,
+                                    firstItemFocusRequester = if (isTv) firstItemFocusRequester else null,
+                                    lastItemFocusRequester = if (isTv) lastItemFocusRequester else null,
+                                    restoredFocusKey = restoredFocusKey,
+                                    onItemFocused = { restoredFocusKey = it },
+                                    // Down from the last item goes to the FAB normally, or to the
+                                    // selection action bar while selecting (the FAB is hidden then).
+                                    lastItemDownFocusRequester = when {
+                                        !isTv -> null
+                                        selectionManager.isInSelectionMode -> firstActionFocusRequester
+                                        else -> fabFocusRequester
+                                    },
+                                    contentPadding = updatedScaffoldPadding,
+                                )
+                            }
+                        }
                     }
                 }
 

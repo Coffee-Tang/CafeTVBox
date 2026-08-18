@@ -24,6 +24,18 @@ interface MediumStateDao {
     @Query("SELECT * FROM media_state")
     fun getAll(): Flow<List<MediumStateEntity>>
 
+    /**
+     * The most recently played items, newest first.
+     *
+     * A row without a title predates playback history and has nothing to show, so it is left out
+     * until the item is played again.
+     */
+    @Query(
+        "SELECT * FROM media_state WHERE last_played_time IS NOT NULL AND title IS NOT NULL " +
+            "ORDER BY last_played_time DESC LIMIT :limit",
+    )
+    fun getRecentlyPlayed(limit: Int): Flow<List<MediumStateEntity>>
+
     @Query("DELETE FROM media_state WHERE uri in (:uris)")
     suspend fun delete(uris: List<String>)
 }

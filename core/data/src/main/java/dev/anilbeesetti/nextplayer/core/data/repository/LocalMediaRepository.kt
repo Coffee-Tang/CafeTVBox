@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.anilbeesetti.nextplayer.core.common.extensions.mapAsync
 import dev.anilbeesetti.nextplayer.core.data.mappers.toAudioStreamInfo
 import dev.anilbeesetti.nextplayer.core.data.mappers.toFolder
+import dev.anilbeesetti.nextplayer.core.data.mappers.toRecentMedium
 import dev.anilbeesetti.nextplayer.core.data.mappers.toSubtitleStreamInfo
 import dev.anilbeesetti.nextplayer.core.data.mappers.toVideo
 import dev.anilbeesetti.nextplayer.core.data.mappers.toVideoState
@@ -19,6 +20,7 @@ import dev.anilbeesetti.nextplayer.core.database.entities.MediumStateEntity
 import dev.anilbeesetti.nextplayer.core.media.services.MediaService
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.MediaInfo
+import dev.anilbeesetti.nextplayer.core.model.RecentMedium
 import dev.anilbeesetti.nextplayer.core.model.Video
 import io.github.anilbeesetti.nextlib.mediainfo.MediaInfoBuilder
 import kotlinx.coroutines.Dispatchers
@@ -62,6 +64,9 @@ class LocalMediaRepository @Inject constructor(
             mediaVideo.toVideo(mediaState)
         }
     }
+
+    override fun observeRecentlyPlayed(limit: Int): Flow<List<RecentMedium>> =
+        mediumStateDao.getRecentlyPlayed(limit).map { states -> states.map { it.toRecentMedium() } }
 
     override suspend fun getVideoByUri(uri: String): Video? = coroutineScope {
         val mediaVideoDeferred = async { mediaService.findVideo(uri.toUri()) }

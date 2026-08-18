@@ -230,6 +230,11 @@
     <string name="info">Info</string>
     <string name="play">Play</string>
     <string name="recently_played">Recently played</string>
+    <string name="continue_watching">Continue watching</string>
+    <string name="media_source_local">On this device</string>
+    <string name="media_source_share">Network share</string>
+    <string name="media_source_stream">Stream</string>
+    <string name="error_playback_source_unavailable">This item\'s source is no longer set up</string>
     <string name="delete_one_video">Delete 1 video?</string>
     <string name="delete_videos">Delete %1$d videos?</string>
     <string name="delete_one_folder">Delete 1 folder?</string>

@@ -11,8 +11,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
+import dev.anilbeesetti.nextplayer.core.media.network.NetworkMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.isNetworkBrowsableEntry
-import dev.anilbeesetti.nextplayer.core.media.network.networkMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import dev.anilbeesetti.nextplayer.core.media.network.sftp.HostKeyMismatch
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
@@ -149,7 +149,7 @@ class NetworkBrowseViewModel @AssistedInject constructor(
             _playEvents.send(
                 NetworkPlaybackRequest(
                     uri = url.toUri(),
-                    mediaKey = networkMediaKey(connectionId = connectionId, path = file.path),
+                    mediaKey = NetworkMediaKey(connectionId = connectionId, path = file.path).toString(),
                 ),
             )
         }

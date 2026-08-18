@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.anilbeesetti.nextplayer.core.common.extensions.prettyName
 import dev.anilbeesetti.nextplayer.core.common.service.system.SystemService
 import dev.anilbeesetti.nextplayer.core.common.storagePermission
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMediaResolver
 import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PlaylistRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
@@ -36,6 +37,7 @@ import dev.anilbeesetti.nextplayer.core.model.ApplicationPreferences
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.MediaViewMode
 import dev.anilbeesetti.nextplayer.core.model.PlaylistSummary
+import dev.anilbeesetti.nextplayer.core.model.RecentMedium
 import dev.anilbeesetti.nextplayer.core.model.Video
 import dev.anilbeesetti.nextplayer.core.model.findClosestFolder
 import dev.anilbeesetti.nextplayer.core.ui.base.DataState
@@ -57,6 +59,7 @@ class MediaPickerViewModel @AssistedInject constructor(
     private val getSortedVideosUseCase: GetSortedVideosUseCase,
     private val mediaOperationsService: MediaOperationsService,
     private val mediaRepository: MediaRepository,
+    private val playableMediaResolver: PlayableMediaResolver,
     private val playlistRepository: PlaylistRepository,
     private val preferencesRepository: PreferencesRepository,
     private val mediaSynchronizer: MediaSynchronizer,
@@ -75,6 +78,7 @@ class MediaPickerViewModel @AssistedInject constructor(
     data class Output(
         val navigateUp: () -> Unit,
         val playVideo: (Uri) -> Unit,
+        val resumeWatching: (uri: Uri, mediaKey: String, title: String) -> Unit,
         val playVideos: (List<Uri>) -> Unit,
         val openFolder: (String) -> Unit,
         val openSettings: () -> Unit,
@@ -109,12 +113,15 @@ class MediaPickerViewModel @AssistedInject constructor(
         }
         collectPreferences()
         collectPlaylists()
+        // History spans every kind of source, so it belongs to the root screen rather than a folder.
+        if (folderPath == null) collectRecentlyPlayed()
     }
 
     fun onAction(action: MediaPickerAction) {
         when (action) {
             MediaPickerAction.OnNavigateUpClick -> output.navigateUp()
             is MediaPickerAction.OnPlayVideo -> output.playVideo(action.uri)
+            is MediaPickerAction.OnResumeWatching -> resumeWatching(action.medium)
             is MediaPickerAction.OnFolderClick -> output.openFolder(action.folderPath)
             MediaPickerAction.OnSettingsClick -> output.openSettings()
             MediaPickerAction.OnSearchClick -> output.openSearch()
@@ -177,6 +184,34 @@ class MediaPickerViewModel @AssistedInject constructor(
                     currentState.copy(preferences = it)
                 }
             }
+        }
+    }
+
+    private fun collectRecentlyPlayed() {
+        viewModelScope.launch {
+            mediaRepository.observeRecentlyPlayed(CONTINUE_WATCHING_LIMIT).collect { recentlyPlayed ->
+                uiStateInternal.update { it.copy(recentlyPlayed = recentlyPlayed) }
+            }
+        }
+    }
+
+    /**
+     * Reopens something from history.
+     *
+     * A file on a network share needs a fresh proxy URL, which is gone when the server is no longer
+     * configured. Its history entry stays, since the share may well come back.
+     */
+    private fun resumeWatching(medium: RecentMedium) {
+        viewModelScope.launch {
+            val uri = playableMediaResolver.resolve(medium.mediaKey)
+            if (uri == null) {
+                systemService.showToast(
+                    text = systemService.getString(R.string.error_playback_source_unavailable),
+                    duration = Toast.LENGTH_SHORT,
+                )
+                return@launch
+            }
+            output.resumeWatching(uri, medium.mediaKey, medium.title)
         }
     }
 
@@ -491,6 +526,11 @@ class MediaPickerViewModel @AssistedInject constructor(
     private suspend fun Set<SelectionItem>.toVideoUris(): List<Uri> {
         return toVideos().map { it.uriString.toUri() }
     }
+
+    private companion object {
+        /** How many items the home screen offers to continue; the rest live on the history screen. */
+        const val CONTINUE_WATCHING_LIMIT = 10
+    }
 }
 
 @Stable
@@ -499,6 +539,7 @@ data class MediaPickerUiState(
     val refreshing: Boolean = false,
     val recentlyPlayedVideo: Video? = null,
     val recentlyPlayedFolder: Folder? = null,
+    val recentlyPlayed: List<RecentMedium> = emptyList(),
     val mediaDataState: DataState<MediaHolder?> = DataState.Loading,
     val preferences: ApplicationPreferences = ApplicationPreferences(),
     val mediaInfo: dev.anilbeesetti.nextplayer.core.model.MediaInfo? = null,
@@ -533,6 +574,7 @@ sealed interface HideFlowState {
 sealed interface MediaPickerAction {
     data object OnNavigateUpClick : MediaPickerAction
     data class OnPlayVideo(val uri: Uri) : MediaPickerAction
+    data class OnResumeWatching(val medium: RecentMedium) : MediaPickerAction
     data class OnFolderClick(val folderPath: String) : MediaPickerAction
     data object OnSettingsClick : MediaPickerAction
     data object OnSearchClick : MediaPickerAction

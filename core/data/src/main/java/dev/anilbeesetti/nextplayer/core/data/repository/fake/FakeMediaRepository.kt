@@ -5,6 +5,7 @@ import dev.anilbeesetti.nextplayer.core.data.models.VideoState
 import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.MediaInfo
+import dev.anilbeesetti.nextplayer.core.model.RecentMedium
 import dev.anilbeesetti.nextplayer.core.model.Video
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ class FakeMediaRepository : MediaRepository {
 
     val videos = mutableListOf<Video>()
     val directories = mutableListOf<Folder>()
+    val recentlyPlayed = mutableListOf<RecentMedium>()
     private val updates = MutableStateFlow(0L)
 
     override fun observeFolders(folderPath: String?): Flow<List<Folder>> {
@@ -38,6 +40,10 @@ class FakeMediaRepository : MediaRepository {
 
     override suspend fun getVideoByUri(uri: String): Video? {
         return videos.find { it.uriString == uri }
+    }
+
+    override fun observeRecentlyPlayed(limit: Int): Flow<List<RecentMedium>> {
+        return updates.map { recentlyPlayed.take(limit) }
     }
 
     fun notifyMediaChanged() {

@@ -104,6 +104,15 @@ class PlayerService : MediaSessionService() {
 
     private var isMediaItemReady = false
 
+    /**
+     * Whether the item being played has been seen as live at any point.
+     *
+     * Media3 only reports a live window once the manifest has said as much, which can be later than
+     * the first time playback state is reported. Seeing it live once is therefore enough, and keeps
+     * a broadcast from being recorded as something to resume at a position.
+     */
+    private var wasCurrentMediaItemLive = false
+
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var currentVolumeGain: Int = 0
 
@@ -112,6 +121,7 @@ class PlayerService : MediaSessionService() {
             super.onMediaItemTransition(mediaItem, reason)
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_REPEAT) return
             isMediaItemReady = false
+            wasCurrentMediaItemLive = false
             loadArtworkForCurrentMediaItem()
             mediaItem?.mediaMetadata?.let { metadata ->
                 mediaSession?.player?.run {
@@ -616,7 +626,8 @@ class PlayerService : MediaSessionService() {
         val mediaItem = player.currentMediaItem ?: return
         // A live stream's duration is the length of its rolling window, which says nothing about
         // how much there is to watch.
-        val isLive = player.isCurrentMediaItemLive
+        val isLive = player.isCurrentMediaItemLive.also { if (it) wasCurrentMediaItemLive = true } ||
+            wasCurrentMediaItemLive
         mediaRepository.updateMediumPlayback(
             uri = mediaItem.mediaId,
             position = if (isLive) C.TIME_UNSET else player.currentPosition,

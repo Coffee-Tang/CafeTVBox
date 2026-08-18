@@ -4,6 +4,7 @@ import android.net.Uri
 import dev.anilbeesetti.nextplayer.core.data.models.VideoState
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.MediaInfo
+import dev.anilbeesetti.nextplayer.core.model.RecentMedium
 import dev.anilbeesetti.nextplayer.core.model.Video
 import kotlinx.coroutines.flow.Flow
 
@@ -46,6 +47,13 @@ interface MediaRepository {
      * @return List of videos.
      */
     suspend fun fetchVideos(folderPath: String? = null): List<Video>
+
+    /**
+     * Observes the most recently played items, newest first, across every kind of source.
+     *
+     * @param limit How many items to report at most.
+     */
+    fun observeRecentlyPlayed(limit: Int): Flow<List<RecentMedium>>
 
     suspend fun getVideoByUri(uri: String): Video?
     suspend fun getVideoState(uri: String): VideoState?
