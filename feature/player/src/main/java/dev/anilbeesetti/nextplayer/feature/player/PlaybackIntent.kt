@@ -8,3 +8,11 @@ package dev.anilbeesetti.nextplayer.feature.player
  * identity pass it here so resume position and track choices survive across sessions.
  */
 const val EXTRA_MEDIA_KEY = "dev.anilbeesetti.nextplayer.extra.MEDIA_KEY"
+
+/**
+ * Intent extra naming the media in a way worth showing to the user.
+ *
+ * Without it a title is taken from the URI, which suits a file but not a live channel: its URL says
+ * nothing, while the playlist it came from knows it as, say, CCTV-1.
+ */
+const val EXTRA_MEDIA_TITLE = "dev.anilbeesetti.nextplayer.extra.MEDIA_TITLE"

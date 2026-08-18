@@ -104,6 +104,34 @@ class MediaDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate10To11_addsHistoryColumnsAndKeepsPlaybackState() {
+        helper.createDatabase(TEST_DB, 10).apply {
+            execSQL(
+                "INSERT INTO media_state " +
+                    "(uri,playback_position,audio_track_index,subtitle_track_index,playback_speed," +
+                    "last_played_time,external_subs,video_scale,subtitle_delay,subtitle_speed) " +
+                    "VALUES ('content://media/1',49769,NULL,NULL,NULL,123,'',1.0,0,1.0)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            11,
+            true,
+            MediaDatabase.MIGRATION_10_11,
+        ).use { db ->
+            db.query("SELECT * FROM media_state WHERE uri = 'content://media/1'").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(49769L, cursor.getLong(cursor.getColumnIndexOrThrow("playback_position")))
+                assertEquals(123L, cursor.getLong(cursor.getColumnIndexOrThrow("last_played_time")))
+                check(cursor.isNull(cursor.getColumnIndexOrThrow("title")))
+                check(cursor.isNull(cursor.getColumnIndexOrThrow("duration")))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

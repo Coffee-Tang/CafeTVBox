@@ -33,4 +33,13 @@ data class MediumStateEntity(
     val subtitleDelayMilliseconds: Long = 0,
     @ColumnInfo(name = "subtitle_speed")
     val subtitleSpeed: Float = 1f,
+    /**
+     * What playback history shows for this item. Kept here rather than looked up on demand, since
+     * only the device's own library can be queried again: a network share may be offline, and a
+     * playlist may no longer carry the channel.
+     */
+    @ColumnInfo(name = "title")
+    val title: String? = null,
+    @ColumnInfo(name = "duration")
+    val duration: Long? = null,
 )

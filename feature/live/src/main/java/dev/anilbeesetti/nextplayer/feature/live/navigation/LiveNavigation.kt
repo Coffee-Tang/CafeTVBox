@@ -79,7 +79,7 @@ fun EntryProviderScope<NavKey>.addLiveSourceEntry(
 
 fun EntryProviderScope<NavKey>.liveChannelsEntry(
     onNavigateUp: () -> Unit,
-    onPlayChannel: (uri: Uri) -> Unit,
+    onPlayChannel: (uri: Uri, name: String) -> Unit,
 ) {
     entry<LiveChannelsRoute> { key ->
         LiveChannelsScreenRoute(

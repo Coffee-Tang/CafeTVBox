@@ -146,7 +146,7 @@ class PlayerService : MediaSessionService() {
                         oldMediaItem.copy(positionMs = updatedPosition),
                     )
                     serviceScope.launch {
-                        mediaRepository.updateMediumPosition(
+                        mediaRepository.updateMediumPlayback(
                             uri = oldMediaItem.mediaId,
                             position = updatedPosition,
                         )
@@ -157,7 +157,7 @@ class PlayerService : MediaSessionService() {
                     serviceScope.launch {
                         val durationMs = oldMediaItem.mediaMetadata.durationMs
                         val isAtEnd = durationMs != null && oldPosition.positionMs >= durationMs - 1000
-                        mediaRepository.updateMediumPosition(
+                        mediaRepository.updateMediumPlayback(
                             uri = oldMediaItem.mediaId,
                             position = if (isAtEnd) C.TIME_UNSET else oldPosition.positionMs,
                         )
@@ -245,13 +245,8 @@ class PlayerService : MediaSessionService() {
             }
 
             if (playbackState == Player.STATE_READY) {
-                mediaSession?.player?.let {
-                    serviceScope.launch {
-                        mediaRepository.updateMediumLastPlayedTime(
-                            uri = it.currentMediaItem?.mediaId ?: return@launch,
-                            lastPlayedTime = System.currentTimeMillis(),
-                        )
-                    }
+                mediaSession?.player?.let { player ->
+                    serviceScope.launch { rememberPlayback(player) }
                 }
             }
         }
@@ -287,7 +282,7 @@ class PlayerService : MediaSessionService() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             super.onIsPlayingChanged(isPlaying)
             mediaSession?.run {
-                serviceScope.launch { rememberPlaybackPosition(player) }
+                serviceScope.launch { rememberPlayback(player) }
             }
         }
 
@@ -397,7 +392,7 @@ class PlayerService : MediaSessionService() {
                             it.type == C.TRACK_TYPE_TEXT && it.isSupported
                         }
 
-                        mediaRepository.updateMediumPosition(
+                        mediaRepository.updateMediumPlayback(
                             uri = currentMediaItem.mediaId,
                             position = player.currentPosition,
                         )
@@ -498,7 +493,7 @@ class PlayerService : MediaSessionService() {
 
                 CustomCommands.STOP_PLAYER_SESSION -> {
                     mediaSession?.run {
-                        serviceScope.launch { rememberPlaybackPosition(player) }
+                        serviceScope.launch { rememberPlayback(player) }
                     }
                     mediaSession?.run {
                         player.clearMediaItems()
@@ -607,17 +602,26 @@ class PlayerService : MediaSessionService() {
     }
 
     /**
-     * Stores where playback reached, so the next visit can pick it up there.
+     * Stores where playback reached and what playback history shows, so the next visit can pick the
+     * item up where it was left.
      *
      * A live stream has no position worth returning to, since the broadcast has moved on by then.
      * Those are stored as [C.TIME_UNSET], which starts the next visit at the live edge, while the
      * timestamp still records that the channel was watched.
+     *
+     * Everything history needs is written here together. Writing it from a second place would race
+     * with this one, and the loser's fields would be lost.
      */
-    private suspend fun rememberPlaybackPosition(player: Player) {
-        val mediaId = player.currentMediaItem?.mediaId ?: return
-        mediaRepository.updateMediumPosition(
-            uri = mediaId,
-            position = if (player.isCurrentMediaItemLive) C.TIME_UNSET else player.currentPosition,
+    private suspend fun rememberPlayback(player: Player) {
+        val mediaItem = player.currentMediaItem ?: return
+        // A live stream's duration is the length of its rolling window, which says nothing about
+        // how much there is to watch.
+        val isLive = player.isCurrentMediaItemLive
+        mediaRepository.updateMediumPlayback(
+            uri = mediaItem.mediaId,
+            position = if (isLive) C.TIME_UNSET else player.currentPosition,
+            title = mediaItem.mediaMetadata.title?.toString(),
+            duration = player.duration.takeIf { !isLive && it != C.TIME_UNSET && it > 0 },
         )
     }
 

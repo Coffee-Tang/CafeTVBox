@@ -90,21 +90,18 @@ class LocalMediaRepository @Inject constructor(
         return@withContext result
     }
 
-    override suspend fun updateMediumLastPlayedTime(uri: String, lastPlayedTime: Long) {
-        val stateEntity = mediumStateDao.get(uri) ?: MediumStateEntity(uriString = uri)
-
-        mediumStateDao.upsert(
-            mediumState = stateEntity.copy(
-                lastPlayedTime = lastPlayedTime,
-            ),
-        )
-    }
-
-    override suspend fun updateMediumPosition(uri: String, position: Long) {
+    override suspend fun updateMediumPlayback(
+        uri: String,
+        position: Long,
+        title: String?,
+        duration: Long?,
+    ) {
         val stateEntity = mediumStateDao.get(uri) ?: MediumStateEntity(uriString = uri)
         mediumStateDao.upsert(
             mediumState = stateEntity.copy(
                 playbackPosition = position,
+                title = title ?: stateEntity.title,
+                duration = duration ?: stateEntity.duration,
                 lastPlayedTime = System.currentTimeMillis(),
             ),
         )

@@ -57,14 +57,14 @@ import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 @Composable
 fun LiveChannelsScreenRoute(
     onNavigateUp: () -> Unit,
-    onPlayChannel: (Uri) -> Unit,
+    onPlayChannel: (uri: Uri, name: String) -> Unit,
     viewModel: LiveChannelsViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LiveChannelsScreen(
         uiState = uiState,
         onNavigateUp = onNavigateUp,
-        onPlayChannel = { channel -> onPlayChannel(channel.url.toUri()) },
+        onPlayChannel = { channel -> onPlayChannel(channel.url.toUri(), channel.name) },
         onSelectGroup = viewModel::selectGroup,
         onRetry = viewModel::refresh,
     )

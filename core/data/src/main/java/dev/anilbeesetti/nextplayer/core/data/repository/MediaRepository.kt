@@ -50,8 +50,18 @@ interface MediaRepository {
     suspend fun getVideoByUri(uri: String): Video?
     suspend fun getVideoState(uri: String): VideoState?
     suspend fun getMediaInfo(uri: String): MediaInfo?
-    suspend fun updateMediumLastPlayedTime(uri: String, lastPlayedTime: Long)
-    suspend fun updateMediumPosition(uri: String, position: Long)
+    /**
+     * Records where playback reached, and what playback history shows for the item.
+     *
+     * [title] and [duration] are only stored when given, so a caller that knows less than an
+     * earlier one does not erase what history already holds.
+     */
+    suspend fun updateMediumPlayback(
+        uri: String,
+        position: Long,
+        title: String? = null,
+        duration: Long? = null,
+    )
     suspend fun updateMediumPlaybackSpeed(uri: String, playbackSpeed: Float)
     suspend fun updateMediumAudioTrack(uri: String, audioTrackIndex: Int)
     suspend fun updateMediumSubtitleTrack(uri: String, subtitleTrackIndex: Int)

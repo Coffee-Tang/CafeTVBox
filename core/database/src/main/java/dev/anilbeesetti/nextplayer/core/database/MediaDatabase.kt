@@ -25,7 +25,7 @@ import dev.anilbeesetti.nextplayer.core.database.entities.PlaylistItemEntity
         PlaylistItemEntity::class,
         LiveSourceEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class MediaDatabase : RoomDatabase() {
@@ -321,6 +321,13 @@ abstract class MediaDatabase : RoomDatabase() {
                     )
                     """,
                 )
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `media_state` ADD COLUMN `title` TEXT")
+                db.execSQL("ALTER TABLE `media_state` ADD COLUMN `duration` INTEGER")
             }
         }
     }

@@ -247,7 +247,7 @@ class PlayerActivity : ComponentActivity() {
                 if (index == mediaItemIndexToPlay) {
                     setMediaMetadata(
                         MediaMetadata.Builder().apply {
-                            setTitle(playerApi.title)
+                            setTitle(intent.getStringExtra(EXTRA_MEDIA_TITLE) ?: playerApi.title)
                             setExtras(positionMs = playerApi.position?.toLong())
                         }.build(),
                     )

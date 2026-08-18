@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEY
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_TITLE
 import dev.anilbeesetti.nextplayer.feature.player.PlayerActivity
 import dev.anilbeesetti.nextplayer.feature.player.utils.PlayerApi
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.mediaPickerEntry
@@ -49,12 +50,14 @@ fun EntryProviderScope<NavKey>.mediaNavGraph(
 internal fun Context.startPlayback(
     uri: Uri,
     mediaKey: String? = null,
+    title: String? = null,
     grantReadPermission: Boolean = false,
 ) {
     startPlayback(
         uri = uri,
         playlist = null,
         mediaKey = mediaKey,
+        title = title,
         grantReadPermission = grantReadPermission,
     )
 }
@@ -69,6 +72,7 @@ internal fun Context.startPlayback(
         uri = uri,
         playlist = uris,
         mediaKey = null,
+        title = null,
         grantReadPermission = grantReadPermission,
     )
 }
@@ -77,6 +81,7 @@ private fun Context.startPlayback(
     uri: Uri,
     playlist: List<Uri>?,
     mediaKey: String?,
+    title: String?,
     grantReadPermission: Boolean,
 ) {
     if (grantReadPermission) {
@@ -89,6 +94,7 @@ private fun Context.startPlayback(
         data = uri
         playlist?.let { putParcelableArrayListExtra(PlayerApi.API_PLAYLIST, ArrayList(it)) }
         mediaKey?.let { putExtra(EXTRA_MEDIA_KEY, it) }
+        title?.let { putExtra(EXTRA_MEDIA_TITLE, it) }
         if (grantReadPermission) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     startActivity(intent)
