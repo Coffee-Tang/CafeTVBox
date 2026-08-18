@@ -92,6 +92,7 @@ import dev.anilbeesetti.nextplayer.feature.player.state.rememberTapGestureState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberVideoZoomAndContentScaleState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberVolumeAndBrightnessGestureState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberVolumeState
+import dev.anilbeesetti.nextplayer.feature.player.extensions.explanationOrNull
 import dev.anilbeesetti.nextplayer.feature.player.extensions.formatted
 import dev.anilbeesetti.nextplayer.feature.player.extensions.nameRes
 import dev.anilbeesetti.nextplayer.feature.player.state.seekAmountFormatted
@@ -508,7 +509,15 @@ fun MediaPlayerScreen(
                 Text(text = stringResource(coreUiR.string.error_playing_video))
             },
             text = {
-                Text(text = error.message ?: stringResource(coreUiR.string.unknown_error))
+                val explanation = error.explanationOrNull(
+                    context = context,
+                    mediaUri = player.currentMediaItem?.localConfiguration?.uri,
+                )
+                Text(
+                    text = explanation?.let { stringResource(it) }
+                        ?: error.message
+                        ?: stringResource(coreUiR.string.unknown_error),
+                )
             },
             confirmButton = {
                 if (player.hasNextMediaItem()) {
