@@ -287,12 +287,7 @@ class PlayerService : MediaSessionService() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             super.onIsPlayingChanged(isPlaying)
             mediaSession?.run {
-                serviceScope.launch {
-                    mediaRepository.updateMediumPosition(
-                        uri = player.currentMediaItem?.mediaId ?: return@launch,
-                        position = player.currentPosition,
-                    )
-                }
+                serviceScope.launch { rememberPlaybackPosition(player) }
             }
         }
 
@@ -503,12 +498,7 @@ class PlayerService : MediaSessionService() {
 
                 CustomCommands.STOP_PLAYER_SESSION -> {
                     mediaSession?.run {
-                        serviceScope.launch {
-                            mediaRepository.updateMediumPosition(
-                                uri = player.currentMediaItem?.mediaId ?: return@launch,
-                                position = player.currentPosition,
-                            )
-                        }
+                        serviceScope.launch { rememberPlaybackPosition(player) }
                     }
                     mediaSession?.run {
                         player.clearMediaItems()
@@ -614,6 +604,21 @@ class PlayerService : MediaSessionService() {
         }
         subtitleCacheDir.deleteFiles()
         serviceScope.cancel()
+    }
+
+    /**
+     * Stores where playback reached, so the next visit can pick it up there.
+     *
+     * A live stream has no position worth returning to, since the broadcast has moved on by then.
+     * Those are stored as [C.TIME_UNSET], which starts the next visit at the live edge, while the
+     * timestamp still records that the channel was watched.
+     */
+    private suspend fun rememberPlaybackPosition(player: Player) {
+        val mediaId = player.currentMediaItem?.mediaId ?: return
+        mediaRepository.updateMediumPosition(
+            uri = mediaId,
+            position = if (player.isCurrentMediaItemLive) C.TIME_UNSET else player.currentPosition,
+        )
     }
 
     private suspend fun updatedMediaItemsWithMetadata(
