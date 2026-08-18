@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,16 +56,26 @@ import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 fun ContinueWatchingRow(
     items: List<RecentMedium>,
     onItemClick: (RecentMedium) -> Unit,
+    onSeeAllClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
     firstItemFocusRequester: FocusRequester? = null,
     downFocusRequester: FocusRequester? = null,
 ) {
     Column(modifier = modifier) {
-        ListSectionTitle(
-            text = stringResource(id = R.string.continue_watching),
-            contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 8.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ListSectionTitle(
+                text = stringResource(id = R.string.continue_watching),
+                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 8.dp),
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onSeeAllClick, modifier = Modifier.tvFocusRing()) {
+                Text(text = stringResource(id = R.string.see_all))
+            }
+        }
         LazyRow(
             contentPadding = contentPadding,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -187,6 +199,7 @@ private val CARD_WIDTH = 168.dp
 private fun ContinueWatchingRowPreview() {
     NextPlayerTheme {
         ContinueWatchingRow(
+            onSeeAllClick = {},
             items = listOf(
                 RecentMedium(
                     mediaKey = "cafeplayer-network://1/Shows/Episode.One.mkv",

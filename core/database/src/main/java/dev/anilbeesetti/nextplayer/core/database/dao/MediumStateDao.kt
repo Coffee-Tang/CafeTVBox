@@ -38,4 +38,12 @@ interface MediumStateDao {
 
     @Query("DELETE FROM media_state WHERE uri in (:uris)")
     suspend fun delete(uris: List<String>)
+
+    /**
+     * Forgets every item that has been played, along with where playback reached in it.
+     *
+     * State that was never played, such as a track choice made without watching, is left alone.
+     */
+    @Query("DELETE FROM media_state WHERE last_played_time IS NOT NULL")
+    suspend fun deleteAllPlayed()
 }

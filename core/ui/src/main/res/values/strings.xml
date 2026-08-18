@@ -231,6 +231,15 @@
     <string name="play">Play</string>
     <string name="recently_played">Recently played</string>
     <string name="continue_watching">Continue watching</string>
+    <string name="see_all">See all</string>
+    <string name="watch_history">Watch history</string>
+    <string name="watched_up_to">%1$s of %2$s</string>
+    <string name="remove_from_watch_history">Remove from history</string>
+    <string name="clear_watch_history">Clear history</string>
+    <string name="clear_watch_history_confirmation">Every watched item will be forgotten, along with where playback reached in it.</string>
+    <string name="clear">Clear</string>
+    <string name="no_watch_history_title">Nothing watched yet</string>
+    <string name="no_watch_history_description">Videos you play, from this device, a network share or a playlist, will show up here.</string>
     <string name="media_source_local">On this device</string>
     <string name="media_source_share">Network share</string>
     <string name="media_source_stream">Stream</string>

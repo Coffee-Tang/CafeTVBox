@@ -53,7 +53,15 @@ interface MediaRepository {
      *
      * @param limit How many items to report at most.
      */
-    fun observeRecentlyPlayed(limit: Int): Flow<List<RecentMedium>>
+    fun observeRecentlyPlayed(limit: Int = Int.MAX_VALUE): Flow<List<RecentMedium>>
+
+    /**
+     * Forgets a single item, including where playback reached in it.
+     */
+    suspend fun removeFromRecentlyPlayed(mediaKey: String)
+
+    /** Forgets every played item, including where playback reached in each. */
+    suspend fun clearRecentlyPlayed()
 
     suspend fun getVideoByUri(uri: String): Video?
     suspend fun getVideoState(uri: String): VideoState?

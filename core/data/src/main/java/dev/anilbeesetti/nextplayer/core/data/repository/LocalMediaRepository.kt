@@ -68,6 +68,14 @@ class LocalMediaRepository @Inject constructor(
     override fun observeRecentlyPlayed(limit: Int): Flow<List<RecentMedium>> =
         mediumStateDao.getRecentlyPlayed(limit).map { states -> states.map { it.toRecentMedium() } }
 
+    override suspend fun removeFromRecentlyPlayed(mediaKey: String) {
+        mediumStateDao.delete(listOf(mediaKey))
+    }
+
+    override suspend fun clearRecentlyPlayed() {
+        mediumStateDao.deleteAllPlayed()
+    }
+
     override suspend fun getVideoByUri(uri: String): Video? = coroutineScope {
         val mediaVideoDeferred = async { mediaService.findVideo(uri.toUri()) }
         val mediaStateDeferred = async { mediumStateDao.get(uri) }

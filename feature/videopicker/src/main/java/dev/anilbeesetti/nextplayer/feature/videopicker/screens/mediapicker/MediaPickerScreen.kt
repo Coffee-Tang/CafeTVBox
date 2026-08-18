@@ -512,6 +512,7 @@ internal fun MediaPickerScreen(
                             ContinueWatchingRow(
                                 items = uiState.recentlyPlayed,
                                 onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
+                                onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
                                 firstItemFocusRequester = if (isTv) continueWatchingFocusRequester else null,
                                 downFocusRequester = if (isTv && hasMedia) firstItemFocusRequester else null,
                             )

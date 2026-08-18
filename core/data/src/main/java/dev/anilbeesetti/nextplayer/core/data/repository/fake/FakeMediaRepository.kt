@@ -46,6 +46,16 @@ class FakeMediaRepository : MediaRepository {
         return updates.map { recentlyPlayed.take(limit) }
     }
 
+    override suspend fun removeFromRecentlyPlayed(mediaKey: String) {
+        recentlyPlayed.removeAll { it.mediaKey == mediaKey }
+        notifyMediaChanged()
+    }
+
+    override suspend fun clearRecentlyPlayed() {
+        recentlyPlayed.clear()
+        notifyMediaChanged()
+    }
+
     fun notifyMediaChanged() {
         updates.value += 1
     }

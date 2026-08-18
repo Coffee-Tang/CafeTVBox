@@ -79,6 +79,7 @@ class MediaPickerViewModel @AssistedInject constructor(
         val navigateUp: () -> Unit,
         val playVideo: (Uri) -> Unit,
         val resumeWatching: (uri: Uri, mediaKey: String, title: String) -> Unit,
+        val openWatchHistory: () -> Unit,
         val playVideos: (List<Uri>) -> Unit,
         val openFolder: (String) -> Unit,
         val openSettings: () -> Unit,
@@ -122,6 +123,7 @@ class MediaPickerViewModel @AssistedInject constructor(
             MediaPickerAction.OnNavigateUpClick -> output.navigateUp()
             is MediaPickerAction.OnPlayVideo -> output.playVideo(action.uri)
             is MediaPickerAction.OnResumeWatching -> resumeWatching(action.medium)
+            MediaPickerAction.OnWatchHistoryClick -> output.openWatchHistory()
             is MediaPickerAction.OnFolderClick -> output.openFolder(action.folderPath)
             MediaPickerAction.OnSettingsClick -> output.openSettings()
             MediaPickerAction.OnSearchClick -> output.openSearch()
@@ -575,6 +577,7 @@ sealed interface MediaPickerAction {
     data object OnNavigateUpClick : MediaPickerAction
     data class OnPlayVideo(val uri: Uri) : MediaPickerAction
     data class OnResumeWatching(val medium: RecentMedium) : MediaPickerAction
+    data object OnWatchHistoryClick : MediaPickerAction
     data class OnFolderClick(val folderPath: String) : MediaPickerAction
     data object OnSettingsClick : MediaPickerAction
     data object OnSearchClick : MediaPickerAction
