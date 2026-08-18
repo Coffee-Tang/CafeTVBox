@@ -1,5 +1,6 @@
 package dev.anilbeesetti.nextplayer.core.data.repository
 
+import dev.anilbeesetti.nextplayer.core.data.security.CredentialCipher
 import dev.anilbeesetti.nextplayer.core.database.dao.NetworkConnectionDao
 import dev.anilbeesetti.nextplayer.core.database.entities.NetworkConnectionEntity
 import dev.anilbeesetti.nextplayer.core.model.NetworkAuthentication
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.map
 @Singleton
 class LocalNetworkConnectionRepository @Inject constructor(
     private val networkConnectionDao: NetworkConnectionDao,
+    private val credentialCipher: CredentialCipher,
 ) : NetworkConnectionRepository {
 
     override fun getConnections(): Flow<List<NetworkConnection>> =
@@ -34,12 +36,12 @@ class LocalNetworkConnectionRepository @Inject constructor(
         port = port,
         path = path,
         username = username,
-        password = password,
+        password = credentialCipher.decrypt(password),
         useHttps = useHttps,
         authentication = runCatching { NetworkAuthentication.valueOf(authentication) }
             .getOrDefault(NetworkAuthentication.PASSWORD),
         privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = privateKeyPassphrase,
+        privateKeyPassphrase = credentialCipher.decrypt(privateKeyPassphrase),
         hostKeyFingerprint = hostKeyFingerprint,
     )
 
@@ -51,11 +53,11 @@ class LocalNetworkConnectionRepository @Inject constructor(
         port = port,
         path = path,
         username = username,
-        password = password,
+        password = credentialCipher.encrypt(password),
         useHttps = useHttps,
         authentication = authentication.name,
         privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = privateKeyPassphrase,
+        privateKeyPassphrase = credentialCipher.encrypt(privateKeyPassphrase),
         hostKeyFingerprint = hostKeyFingerprint,
     )
 }

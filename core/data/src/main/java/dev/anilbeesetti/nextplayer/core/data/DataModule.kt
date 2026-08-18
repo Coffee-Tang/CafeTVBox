@@ -18,6 +18,8 @@ import dev.anilbeesetti.nextplayer.core.data.repository.PlaylistRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.SearchHistoryRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.VaultPinRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.VaultRepository
+import dev.anilbeesetti.nextplayer.core.data.security.CredentialCipher
+import dev.anilbeesetti.nextplayer.core.data.security.KeystoreCredentialCipher
 import javax.inject.Singleton
 
 @Module
@@ -64,4 +66,10 @@ interface DataModule {
     fun bindsNetworkConnectionRepository(
         networkConnectionRepository: LocalNetworkConnectionRepository,
     ): NetworkConnectionRepository
+
+    @Binds
+    @Singleton
+    fun bindsCredentialCipher(
+        credentialCipher: KeystoreCredentialCipher,
+    ): CredentialCipher
 }
