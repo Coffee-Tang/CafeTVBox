@@ -237,10 +237,13 @@ class PlayerActivity : ComponentActivity() {
             it == (mediaContentUri ?: uri).toString()
         }.takeIf { it >= 0 } ?: 0
 
+        // Only the requested item can carry a durable key; siblings are identified by their own URI.
+        val mediaKey = intent.getStringExtra(EXTRA_MEDIA_KEY)
+
         val mediaItems = playlist.mapIndexed { index, uri ->
             MediaItem.Builder().apply {
                 setUri(uri)
-                setMediaId(uri)
+                setMediaId(if (index == mediaItemIndexToPlay) mediaKey ?: uri else uri)
                 if (index == mediaItemIndexToPlay) {
                     setMediaMetadata(
                         MediaMetadata.Builder().apply {

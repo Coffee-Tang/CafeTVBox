@@ -12,6 +12,7 @@ import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionReposit
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
 import dev.anilbeesetti.nextplayer.core.media.network.isNetworkBrowsableEntry
+import dev.anilbeesetti.nextplayer.core.media.network.networkMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import dev.anilbeesetti.nextplayer.core.media.network.sftp.HostKeyMismatch
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
@@ -42,6 +43,9 @@ data class NetworkBrowseError(
     val hostKeyMismatch: NetworkBrowseHostKeyMismatch? = null,
 )
 
+/** A network file ready to play: [uri] is the proxy URL, [mediaKey] the identity that outlives it. */
+data class NetworkPlaybackRequest(val uri: Uri, val mediaKey: String)
+
 /**
  * Browses a single folder on a network connection. Each folder is its own navigation destination
  * (like the media picker), so back navigation returns to the already-loaded parent instantly.
@@ -69,7 +73,7 @@ class NetworkBrowseViewModel @AssistedInject constructor(
     private val _uiState = MutableStateFlow(NetworkBrowseUiState())
     val uiState: StateFlow<NetworkBrowseUiState> = _uiState.asStateFlow()
 
-    private val _playEvents = Channel<Uri>()
+    private val _playEvents = Channel<NetworkPlaybackRequest>()
     val playEvents = _playEvents.receiveAsFlow()
 
     init {
@@ -142,7 +146,12 @@ class NetworkBrowseViewModel @AssistedInject constructor(
         if (file.isDirectory) return
         viewModelScope.launch {
             val url = streamingProxy.registerStream(conn, file.path, file.name)
-            _playEvents.send(url.toUri())
+            _playEvents.send(
+                NetworkPlaybackRequest(
+                    uri = url.toUri(),
+                    mediaKey = networkMediaKey(connectionId = connectionId, path = file.path),
+                ),
+            )
         }
     }
 

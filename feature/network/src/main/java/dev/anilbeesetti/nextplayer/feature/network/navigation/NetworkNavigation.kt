@@ -79,7 +79,7 @@ fun EntryProviderScope<NavKey>.addConnectionEntry(
 
 fun EntryProviderScope<NavKey>.networkBrowseEntry(
     onNavigateUp: () -> Unit,
-    onPlayVideo: (uri: Uri) -> Unit,
+    onPlayVideo: (uri: Uri, mediaKey: String) -> Unit,
     onNavigateToFolder: (connectionId: Long, path: String) -> Unit,
 ) {
     entry<NetworkBrowseRoute> { key ->

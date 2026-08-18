@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEY
 import dev.anilbeesetti.nextplayer.feature.player.PlayerActivity
 import dev.anilbeesetti.nextplayer.feature.player.utils.PlayerApi
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.mediaPickerEntry
@@ -45,8 +46,17 @@ fun EntryProviderScope<NavKey>.mediaNavGraph(
     )
 }
 
-internal fun Context.startPlayback(uri: Uri, grantReadPermission: Boolean = false) {
-    startPlayback(uri = uri, playlist = null, grantReadPermission = grantReadPermission)
+internal fun Context.startPlayback(
+    uri: Uri,
+    mediaKey: String? = null,
+    grantReadPermission: Boolean = false,
+) {
+    startPlayback(
+        uri = uri,
+        playlist = null,
+        mediaKey = mediaKey,
+        grantReadPermission = grantReadPermission,
+    )
 }
 
 internal fun Context.startPlayback(
@@ -55,10 +65,20 @@ internal fun Context.startPlayback(
     grantReadPermission: Boolean = false,
 ) {
     val uri = startUri?.takeIf(uris::contains) ?: uris.firstOrNull() ?: return
-    startPlayback(uri = uri, playlist = uris, grantReadPermission = grantReadPermission)
+    startPlayback(
+        uri = uri,
+        playlist = uris,
+        mediaKey = null,
+        grantReadPermission = grantReadPermission,
+    )
 }
 
-private fun Context.startPlayback(uri: Uri, playlist: List<Uri>?, grantReadPermission: Boolean) {
+private fun Context.startPlayback(
+    uri: Uri,
+    playlist: List<Uri>?,
+    mediaKey: String?,
+    grantReadPermission: Boolean,
+) {
     if (grantReadPermission) {
         (playlist ?: listOf(uri)).forEach {
             grantUriPermission(packageName, it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -68,6 +88,7 @@ private fun Context.startPlayback(uri: Uri, playlist: List<Uri>?, grantReadPermi
         action = Intent.ACTION_VIEW
         data = uri
         playlist?.let { putParcelableArrayListExtra(PlayerApi.API_PLAYLIST, ArrayList(it)) }
+        mediaKey?.let { putExtra(EXTRA_MEDIA_KEY, it) }
         if (grantReadPermission) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     startActivity(intent)

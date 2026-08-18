@@ -58,13 +58,13 @@ import java.util.Date
 @Composable
 fun NetworkBrowseScreenRoute(
     onNavigateUp: () -> Unit,
-    onPlayVideo: (Uri) -> Unit,
+    onPlayVideo: (uri: Uri, mediaKey: String) -> Unit,
     onNavigateToFolder: (connectionId: Long, path: String) -> Unit,
     viewModel: NetworkBrowseViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    ObserveAsEvents(viewModel.playEvents) { uri -> onPlayVideo(uri) }
+    ObserveAsEvents(viewModel.playEvents) { request -> onPlayVideo(request.uri, request.mediaKey) }
 
     NetworkBrowseScreen(
         uiState = uiState,
