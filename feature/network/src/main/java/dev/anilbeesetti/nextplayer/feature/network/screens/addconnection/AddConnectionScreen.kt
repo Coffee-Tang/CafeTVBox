@@ -329,11 +329,23 @@ internal fun AddConnectionScreen(
                 keyboardActions = moveToNext,
                 modifier = Modifier.fillMaxWidth(),
             )
+            val browsesShares = protocol == NetworkProtocol.SMB
             OutlinedTextField(
                 value = path,
                 enabled = !isTesting,
                 onValueChange = { onChange { path = it } },
-                label = { Text(stringResource(R.string.path_share)) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (browsesShares) R.string.share_name_optional else R.string.path_share,
+                        ),
+                    )
+                },
+                supportingText = if (browsesShares) {
+                    { Text(stringResource(R.string.share_name_optional_description)) }
+                } else {
+                    null
+                },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = moveToNext,

@@ -357,6 +357,8 @@
     <string name="port">Port</string>
     <string name="port_hint">Port (default %1$d)</string>
     <string name="path_share">Path / Share name</string>
+    <string name="share_name_optional">Share name (optional)</string>
+    <string name="share_name_optional_description">Leave empty to browse all shares on the server.</string>
     <string name="username">Username</string>
     <string name="authentication">Authentication</string>
     <string name="password">Password</string>

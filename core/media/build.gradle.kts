@@ -37,6 +37,7 @@ dependencies {
 
     // Network protocols + local streaming proxy
     implementation(libs.smbj)
+    implementation(libs.smbj.rpc)
     implementation(libs.commons.net)
     implementation(libs.sshj)
     implementation(libs.bouncycastle.provider)

@@ -10,9 +10,12 @@ import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
+import com.rapid7.client.dcerpc.mssrvs.ServerService
+import com.rapid7.client.dcerpc.transport.SMBTransportFactories
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
 import dev.anilbeesetti.nextplayer.core.model.NetworkFile
+import java.io.IOException
 import java.io.InputStream
 import java.util.EnumSet
 import java.util.concurrent.TimeUnit
@@ -20,8 +23,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * SMB2/3 client backed by smbj. [NetworkConnection.path] holds only the share name; browse paths
- * are relative to the share root.
+ * SMB2/3 client backed by smbj.
+ *
+ * [NetworkConnection.path] holds the share name, and browse paths are then relative to that share's
+ * root. Leaving it empty browses the server itself: the shares it offers become the top level, so
+ * the first segment of every browse path names a share.
  */
 class SmbClient(private val connection: NetworkConnection) : NetworkClient {
 
@@ -29,13 +35,14 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
     private var smbConnection: Connection? = null
     private var session: Session? = null
 
-    private val shareName: String get() = connection.path.trim('/')
+    /** The share the connection is pinned to, or empty when the whole server is browsed. */
+    private val configuredShare: String get() = connection.path.trim('/')
 
     override val rootPath: String = ""
 
     override suspend fun connect(): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
-            require(shareName.isNotEmpty() && !shareName.contains('/')) {
+            require(!configuredShare.contains('/')) {
                 "Path must be just the share name (e.g. Media), without any folders."
             }
             // Disable signing/encryption: avoids Key.getEncoded() crashes on Android.
@@ -66,9 +73,14 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
                 AuthenticationContext(connection.username, connection.password.toCharArray(), null)
             }
             val sess = conn.authenticate(authContext)
-            // Verify the share is reachable and a disk share.
-            (sess.connectShare(shareName) as? DiskShare)?.use { it.list("") }
-                ?: error("Share '$shareName' is not a disk share")
+            if (configuredShare.isEmpty()) {
+                // Verify the server will tell us its shares, since they are the only way in.
+                listShares(sess)
+            } else {
+                // Verify the share is reachable and a disk share.
+                (sess.connectShare(configuredShare) as? DiskShare)?.use { it.list("") }
+                    ?: error("Share '$configuredShare' is not a disk share")
+            }
 
             client = smbClient
             smbConnection = conn
@@ -90,15 +102,17 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
     override suspend fun listFiles(path: String): Result<List<NetworkFile>> = withContext(Dispatchers.IO) {
         runCatching {
             val sess = session ?: error("Not connected")
-            val relative = path.trim('/')
-            (sess.connectShare(shareName) as DiskShare).use { share ->
-                share.list(smbPath(relative)).mapNotNull { info ->
+            val location = smbLocationOf(configuredShare, path)
+            if (location.share.isEmpty()) return@runCatching listShares(sess)
+            val browsePath = path.trim('/')
+            (sess.connectShare(location.share) as DiskShare).use { share ->
+                share.list(smbPath(location.path)).mapNotNull { info ->
                     val name = info.fileName
                     if (name == "." || name == ".." || name.endsWith("$")) return@mapNotNull null
                     val isDirectory = info.fileAttributes and 0x10L != 0L // FILE_ATTRIBUTE_DIRECTORY
                     NetworkFile(
                         name = name,
-                        path = if (relative.isEmpty()) name else "$relative/$name",
+                        path = if (browsePath.isEmpty()) name else "$browsePath/$name",
                         isDirectory = isDirectory,
                         size = if (isDirectory) 0 else info.endOfFile,
                         modified = info.lastWriteTime?.toEpochMillis(),
@@ -108,11 +122,33 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
         }
     }
 
+    /**
+     * The server's file shares, as browsable folders.
+     *
+     * smbj cannot enumerate shares itself, so this asks the server's `srvsvc` service over the
+     * `IPC$` pipe. Printer, IPC and administrative shares (`C$`, `ADMIN$`) all carry type flags
+     * beyond [SHARE_TYPE_DISK], which leaves only the shares that can hold media.
+     */
+    private fun listShares(session: Session): List<NetworkFile> {
+        val shares = try {
+            ServerService(SMBTransportFactories.SRVSVC.getTransport(session)).shares1
+        } catch (error: IOException) {
+            throw IOException(
+                "Couldn't list the shares on this server. Enter the share name to connect directly.",
+                error,
+            )
+        }
+        return shares
+            .filter { it.type == SHARE_TYPE_DISK }
+            .map { NetworkFile(name = it.netName, path = it.netName, isDirectory = true) }
+    }
+
     override suspend fun fileSize(path: String): Long = withContext(Dispatchers.IO) {
         runCatching {
             val sess = session ?: error("Not connected")
-            (sess.connectShare(shareName) as DiskShare).use { share ->
-                openReadFile(share, path).use { it.fileInformation.standardInformation.endOfFile }
+            val location = smbLocationOf(configuredShare, path)
+            (sess.connectShare(location.share) as DiskShare).use { share ->
+                openReadFile(share, location.path).use { it.fileInformation.standardInformation.endOfFile }
             }
         }.getOrDefault(-1L)
     }
@@ -120,8 +156,9 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
     override suspend fun openStream(path: String, offset: Long): InputStream = withContext(Dispatchers.IO) {
         if (!isConnected()) connect().getOrThrow()
         val sess = session ?: error("Not connected")
-        val share = sess.connectShare(shareName) as DiskShare
-        val file = openReadFile(share, path)
+        val location = smbLocationOf(configuredShare, path)
+        val share = sess.connectShare(location.share) as DiskShare
+        val file = openReadFile(share, location.path)
 
         val rawStream = object : InputStream() {
             private var position = offset
@@ -158,3 +195,27 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
 
     private fun smbPath(relative: String): String = relative.replace('/', '\\')
 }
+
+/** A location on an SMB server: which [share] to connect, and the [path] to use inside it. */
+internal data class SmbLocation(val share: String, val path: String)
+
+/**
+ * Resolves a browse [browsePath] against the share the connection is pinned to.
+ *
+ * With a [configuredShare], browse paths stay relative to it. Without one the app browses the whole
+ * server, so the leading segment names the share, and an empty path means "list the shares".
+ */
+internal fun smbLocationOf(configuredShare: String, browsePath: String): SmbLocation {
+    val clean = browsePath.trim('/')
+    if (configuredShare.isNotEmpty()) return SmbLocation(share = configuredShare, path = clean)
+    return SmbLocation(
+        share = clean.substringBefore('/'),
+        path = clean.substringAfter('/', missingDelimiterValue = ""),
+    )
+}
+
+/**
+ * `STYPE_DISKTREE` from MS-SRVS. Special and administrative shares add flag bits such as
+ * `STYPE_SPECIAL` (`0x80000000`), so an exact match keeps only ordinary file shares.
+ */
+private const val SHARE_TYPE_DISK = 0
