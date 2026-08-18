@@ -11,7 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
-import dev.anilbeesetti.nextplayer.core.media.network.isNetworkVideoFile
+import dev.anilbeesetti.nextplayer.core.media.network.isNetworkBrowsableEntry
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import dev.anilbeesetti.nextplayer.core.media.network.sftp.HostKeyMismatch
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
@@ -114,7 +114,7 @@ class NetworkBrowseViewModel @AssistedInject constructor(
             client.listFiles(path).fold(
                 onSuccess = { files ->
                     val visible = files
-                        .filter { it.isDirectory || isNetworkVideoFile(it.name) }
+                        .filter { isNetworkBrowsableEntry(it.name, it.isDirectory) }
                         .sortedWith(compareByDescending<NetworkFile> { it.isDirectory }.thenBy { it.name.lowercase() })
                     _uiState.value = NetworkBrowseUiState(
                         title = title(conn),

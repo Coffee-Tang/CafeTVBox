@@ -63,8 +63,39 @@ class NetworkBrowseViewModelTest {
             assertNull(viewModel.uiState.value.error?.hostKeyMismatch)
         }
 
-    private fun viewModel(connectResult: Result<Unit>): NetworkBrowseViewModel {
-        val client = FakeNetworkClient(connectResult)
+    @Test
+    fun `listing hides apple double sidecars hidden entries and nas folders`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = viewModel(
+                connectResult = Result.success(Unit),
+                files = listOf(
+                    file("Silicon.Valley.S02E01.mkv"),
+                    file("._Silicon.Valley.S02E01.mkv"),
+                    file(".hidden.mkv"),
+                    file("cover.jpg"),
+                    directory("Season 2"),
+                    directory("@eaDir"),
+                    directory(".Trashes"),
+                ),
+            )
+
+            advanceUntilIdle()
+
+            assertEquals(
+                listOf("Season 2", "Silicon.Valley.S02E01.mkv"),
+                viewModel.uiState.value.files.map { it.name },
+            )
+        }
+
+    private fun file(name: String) = NetworkFile(name = name, path = "/$name", isDirectory = false)
+
+    private fun directory(name: String) = NetworkFile(name = name, path = "/$name", isDirectory = true)
+
+    private fun viewModel(
+        connectResult: Result<Unit>,
+        files: List<NetworkFile>? = null,
+    ): NetworkBrowseViewModel {
+        val client = FakeNetworkClient(connectResult, files)
         val factory = NetworkClientFactory { client }
         return NetworkBrowseViewModel(
             connectionId = 7,
@@ -99,6 +130,7 @@ private class FakeRepository(
 
 private class FakeNetworkClient(
     private val connectResult: Result<Unit>,
+    private val files: List<NetworkFile>? = null,
 ) : NetworkClient {
     override val rootPath: String = "/"
 
@@ -108,7 +140,8 @@ private class FakeNetworkClient(
 
     override fun isConnected(): Boolean = false
 
-    override suspend fun listFiles(path: String): Result<List<NetworkFile>> = error("Not used")
+    override suspend fun listFiles(path: String): Result<List<NetworkFile>> =
+        files?.let { Result.success(it) } ?: error("Not used")
 
     override suspend fun fileSize(path: String): Long = error("Not used")
 
