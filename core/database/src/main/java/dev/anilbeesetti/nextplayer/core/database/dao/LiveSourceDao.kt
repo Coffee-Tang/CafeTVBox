@@ -12,7 +12,8 @@ interface LiveSourceDao {
     @Upsert
     suspend fun upsert(source: LiveSourceEntity): Long
 
-    @Query("SELECT * FROM live_source ORDER BY name COLLATE NOCASE ASC")
+    /** Oldest first: the order sources were added in is the order their lines are tried in. */
+    @Query("SELECT * FROM live_source ORDER BY created_at ASC, id ASC")
     fun getAll(): Flow<List<LiveSourceEntity>>
 
     @Query("SELECT * FROM live_source WHERE id = :id")

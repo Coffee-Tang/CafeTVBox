@@ -1,0 +1,136 @@
+package dev.anilbeesetti.nextplayer.core.domain
+
+import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
+import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
+import dev.anilbeesetti.nextplayer.core.model.LiveChannel
+import dev.anilbeesetti.nextplayer.core.model.LiveSource
+import java.io.IOException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class GetLiveChannelsUseCaseTest {
+
+    @Test
+    fun `a station both sources carry is offered once with the older source first`() = runTest {
+        val useCase = useCase(
+            "https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")),
+            "https://b/tv.m3u" to listOf(
+                channel("CCTV-1综合", "http://b/cctv1"),
+                channel("Hunan", "http://b/hunan"),
+            ),
+        )
+
+        val result = useCase()
+
+        assertEquals(listOf("CCTV1", "Hunan"), result.channels.map { it.name })
+        assertEquals(listOf("http://a/cctv1", "http://b/cctv1"), result.channels[0].urls)
+        assertEquals(emptyList<LiveSource>(), result.failedSources)
+        assertEquals(2, result.sourceCount)
+    }
+
+    @Test
+    fun `a source that cannot be read costs only its own channels`() = runTest {
+        val useCase = useCase(
+            "https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")),
+            "https://broken/tv.m3u" to null,
+            "https://c/tv.m3u" to listOf(channel("Hunan", "http://c/hunan")),
+        )
+
+        val result = useCase()
+
+        assertEquals(listOf("CCTV1", "Hunan"), result.channels.map { it.name })
+        assertEquals(listOf("https://broken/tv.m3u"), result.failedSources.map { it.url })
+        assertEquals(3, result.sourceCount)
+    }
+
+    @Test
+    fun `nothing is offered when every source fails`() = runTest {
+        val useCase = useCase(
+            "https://a/tv.m3u" to null,
+            "https://b/tv.m3u" to null,
+        )
+
+        val result = useCase()
+
+        assertTrue(result.channels.isEmpty())
+        assertEquals(2, result.failedSources.size)
+        assertEquals(2, result.sourceCount)
+    }
+
+    @Test
+    fun `no configured sources leave nothing to read`() = runTest {
+        val result = useCase()()
+
+        assertTrue(result.channels.isEmpty())
+        assertTrue(result.failedSources.isEmpty())
+        assertEquals(0, result.sourceCount)
+    }
+
+    @Test
+    fun `asking for a refresh asks every source for a fresh copy`() = runTest {
+        val channelRepository = FakeLiveChannelRepository(
+            mapOf(
+                "https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")),
+                "https://b/tv.m3u" to listOf(channel("Hunan", "http://b/hunan")),
+            ),
+        )
+        val useCase = GetLiveChannelsUseCase(
+            FakeLiveSourceRepository(listOf("https://a/tv.m3u", "https://b/tv.m3u")),
+            channelRepository,
+        )
+
+        useCase()
+        useCase(refresh = true)
+
+        assertEquals(
+            listOf(
+                FakeLiveChannelRepository.Request("https://a/tv.m3u", refresh = false),
+                FakeLiveChannelRepository.Request("https://b/tv.m3u", refresh = false),
+                FakeLiveChannelRepository.Request("https://a/tv.m3u", refresh = true),
+                FakeLiveChannelRepository.Request("https://b/tv.m3u", refresh = true),
+            ),
+            channelRepository.requests,
+        )
+    }
+
+    private fun useCase(vararg playlists: Pair<String, List<LiveChannel>?>) =
+        GetLiveChannelsUseCase(
+            FakeLiveSourceRepository(playlists.map { it.first }),
+            FakeLiveChannelRepository(playlists.toMap()),
+        )
+
+    private fun channel(name: String, vararg urls: String) =
+        LiveChannel(name = name, urls = urls.toList())
+}
+
+private class FakeLiveSourceRepository(urls: List<String>) : LiveSourceRepository {
+    private val sources = MutableStateFlow(
+        urls.mapIndexed { index, url ->
+            LiveSource(id = index + 1L, name = "Source ${index + 1}", url = url)
+        },
+    )
+
+    override fun getSources(): Flow<List<LiveSource>> = sources
+    override suspend fun getSource(id: Long): LiveSource? = error("Not used")
+    override suspend fun upsert(source: LiveSource): Long = error("Not used")
+    override suspend fun delete(id: Long) = error("Not used")
+}
+
+private class FakeLiveChannelRepository(
+    private val playlists: Map<String, List<LiveChannel>?>,
+) : LiveChannelRepository {
+
+    data class Request(val url: String, val refresh: Boolean)
+
+    val requests = mutableListOf<Request>()
+
+    override suspend fun getChannels(url: String, refresh: Boolean): Result<List<LiveChannel>> {
+        requests += Request(url, refresh)
+        return playlists[url]?.let { Result.success(it) }
+            ?: Result.failure(IOException("Could not read $url"))
+    }
+}
