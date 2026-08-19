@@ -1,6 +1,5 @@
 package dev.anilbeesetti.nextplayer.feature.live.screens.channels
 
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
@@ -57,14 +55,14 @@ import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 @Composable
 fun LiveChannelsScreenRoute(
     onNavigateUp: () -> Unit,
-    onPlayChannel: (uri: Uri, name: String) -> Unit,
+    onPlayChannel: (LiveChannel) -> Unit,
     viewModel: LiveChannelsViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LiveChannelsScreen(
         uiState = uiState,
         onNavigateUp = onNavigateUp,
-        onPlayChannel = { channel -> onPlayChannel(channel.url.toUri(), channel.name) },
+        onPlayChannel = onPlayChannel,
         onSelectGroup = viewModel::selectGroup,
         onRetry = viewModel::refresh,
     )

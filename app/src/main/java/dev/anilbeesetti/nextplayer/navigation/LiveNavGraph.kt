@@ -28,6 +28,6 @@ fun EntryProviderScope<NavKey>.liveNavGraph(
 
     liveChannelsEntry(
         onNavigateUp = { backStack.removeLastIfNotRoot() },
-        onPlayChannel = { uri, name -> context.startPlayback(uri, title = name) },
+        onPlayChannel = { channel -> context.startPlayback(channel) },
     )
 }

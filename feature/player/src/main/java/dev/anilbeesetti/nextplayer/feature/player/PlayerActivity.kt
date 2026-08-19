@@ -71,6 +71,14 @@ class PlayerActivity : ComponentActivity() {
     private var isIntentNew: Boolean = true
 
     /**
+     * The lines the broadcast being played can be reached by, empty for anything else.
+     *
+     * Only the caller knows a channel has alternatives, as the player is handed one address and has
+     * no way to tell a channel's other lines from an unrelated stream.
+     */
+    private var liveLines by mutableStateOf(emptyList<String>())
+
+    /**
      * Player
      */
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -112,6 +120,7 @@ class PlayerActivity : ComponentActivity() {
                         player = player,
                         viewModel = viewModel,
                         playerPreferences = uiState.playerPreferences ?: return@NextPlayerTheme,
+                        liveLines = liveLines,
                         onSelectSubtitleClick = {
                             lifecycleScope.launch {
                                 val videoUri = mediaController?.currentMediaItem?.localConfiguration?.uri
@@ -196,6 +205,7 @@ class PlayerActivity : ComponentActivity() {
 
     private fun startPlayback() {
         val uri = intent.data ?: return
+        liveLines = intent.getStringArrayListExtra(EXTRA_LIVE_LINES).orEmpty()
 
         val returningFromBackground = !isIntentNew && mediaController?.currentMediaItem != null
         val isNewUriTheCurrentMediaItem = mediaController?.currentMediaItem?.localConfiguration?.uri.toString() == uri.toString()

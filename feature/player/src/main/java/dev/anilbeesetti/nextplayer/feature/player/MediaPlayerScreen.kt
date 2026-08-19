@@ -79,10 +79,12 @@ import dev.anilbeesetti.nextplayer.feature.player.buttons.PlayPauseButton
 import dev.anilbeesetti.nextplayer.feature.player.buttons.PlayerButton
 import dev.anilbeesetti.nextplayer.feature.player.buttons.PreviousButton
 import dev.anilbeesetti.nextplayer.feature.player.state.ControlsVisibilityState
+import dev.anilbeesetti.nextplayer.feature.player.state.LiveLinesState
 import dev.anilbeesetti.nextplayer.feature.player.state.VerticalGesture
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberBrightnessState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberControlsVisibilityState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberErrorState
+import dev.anilbeesetti.nextplayer.feature.player.state.rememberLiveLinesState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberMediaPresentationState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberMetadataState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberPictureInPictureState
@@ -117,6 +119,7 @@ fun MediaPlayerScreen(
     player: Player?,
     viewModel: PlayerViewModel,
     playerPreferences: PlayerPreferences,
+    liveLines: List<String> = emptyList(),
     modifier: Modifier = Modifier,
     onSelectSubtitleClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -170,6 +173,14 @@ fun MediaPlayerScreen(
         screenOrientation = playerPreferences.playerScreenOrientation,
     )
     val errorState = rememberErrorState(player = player)
+    val liveLinesState = rememberLiveLinesState(player = player, lines = liveLines)
+
+    // A line that fails outright is worth giving up on at once, without the wait a silent one needs.
+    LaunchedEffect(errorState.error) {
+        if (errorState.error != null && liveLinesState.switchToNextLine()) {
+            errorState.dismiss()
+        }
+    }
 
     LaunchedEffect(pictureInPictureState.isInPictureInPictureMode) {
         if (pictureInPictureState.isInPictureInPictureMode) {
@@ -300,12 +311,15 @@ fun MediaPlayerScreen(
                     )
                 }
 
-                if (mediaPresentationState.isBuffering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(72.dp),
-                    )
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    if (mediaPresentationState.isBuffering) {
+                        CircularProgressIndicator(modifier = Modifier.size(72.dp))
+                    }
+                    LineNote(liveLinesState = liveLinesState)
                 }
 
                 DoubleTapIndicator(tapGestureState = tapGestureState)
@@ -505,7 +519,8 @@ fun MediaPlayerScreen(
         }
     }
 
-    errorState.error?.let { error ->
+    // A channel with a line left to try is being seen to, so saying it failed would be premature.
+    errorState.error?.takeIf { !liveLinesState.hasAnotherLine }?.let { error ->
         AlertDialog(
             onDismissRequest = { },
             title = {
@@ -581,6 +596,36 @@ fun InfoView(
  * Shows the cumulative amount skipped by repeated D-pad left/right seeks while the controls are
  * hidden, along with the resulting position. Fades out shortly after the last seek.
  */
+/**
+ * Says which of a channel's lines is being tried, so that a wait reads as an attempt rather than as
+ * the player having stopped caring.
+ */
+@OptIn(UnstableApi::class)
+@Composable
+private fun LineNote(liveLinesState: LiveLinesState) {
+    val note = when {
+        liveLinesState.hasGivenUp -> stringResource(coreUiR.string.live_no_line_reachable)
+        liveLinesState.isSwitching -> stringResource(
+            coreUiR.string.live_trying_line,
+            liveLinesState.lineInUse,
+            liveLinesState.lineCount,
+        )
+        else -> null
+    } ?: return
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = Color.Black.copy(alpha = 0.6f),
+    ) {
+        Text(
+            text = note,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            color = Color.White,
+        )
+    }
+}
+
 @Composable
 fun BoxScope.DpadSeekIndicator(
     visible: Boolean,

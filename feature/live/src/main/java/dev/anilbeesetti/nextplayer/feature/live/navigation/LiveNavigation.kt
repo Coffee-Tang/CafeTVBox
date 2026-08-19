@@ -1,6 +1,5 @@
 package dev.anilbeesetti.nextplayer.feature.live.navigation
 
-import android.net.Uri
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
@@ -12,6 +11,7 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.ui.NavDisplay
+import dev.anilbeesetti.nextplayer.core.model.LiveChannel
 import dev.anilbeesetti.nextplayer.feature.live.screens.addsource.AddLiveSourceScreenRoute
 import dev.anilbeesetti.nextplayer.feature.live.screens.addsource.AddLiveSourceViewModel
 import dev.anilbeesetti.nextplayer.feature.live.screens.channels.LiveChannelsScreenRoute
@@ -79,7 +79,7 @@ fun EntryProviderScope<NavKey>.addLiveSourceEntry(
 
 fun EntryProviderScope<NavKey>.liveChannelsEntry(
     onNavigateUp: () -> Unit,
-    onPlayChannel: (uri: Uri, name: String) -> Unit,
+    onPlayChannel: (LiveChannel) -> Unit,
 ) {
     entry<LiveChannelsRoute> { key ->
         LiveChannelsScreenRoute(

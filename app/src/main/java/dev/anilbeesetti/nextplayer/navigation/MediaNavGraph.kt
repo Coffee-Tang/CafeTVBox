@@ -3,9 +3,12 @@ package dev.anilbeesetti.nextplayer.navigation
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.core.model.LiveChannel
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_LIVE_LINES
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEY
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEYS
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_TITLE
@@ -76,6 +79,18 @@ internal fun Context.startPlayback(
     )
 }
 
+/** Plays a broadcast, handing over every line it can be reached by to fall back on. */
+internal fun Context.startPlayback(channel: LiveChannel) {
+    startPlayback(
+        uri = channel.url.toUri(),
+        playlist = null,
+        mediaKey = null,
+        title = channel.name,
+        grantReadPermission = false,
+        lines = channel.urls,
+    )
+}
+
 internal fun Context.startPlayback(
     uris: List<Uri>,
     startUri: Uri? = null,
@@ -115,6 +130,7 @@ private fun Context.startPlayback(
     title: String?,
     grantReadPermission: Boolean,
     mediaKeys: List<String>? = null,
+    lines: List<String>? = null,
 ) {
     if (grantReadPermission) {
         (playlist ?: listOf(uri)).forEach {
@@ -127,6 +143,7 @@ private fun Context.startPlayback(
         playlist?.let { putParcelableArrayListExtra(PlayerApi.API_PLAYLIST, ArrayList(it)) }
         mediaKey?.let { putExtra(EXTRA_MEDIA_KEY, it) }
         mediaKeys?.let { putStringArrayListExtra(EXTRA_MEDIA_KEYS, ArrayList(it)) }
+        lines?.takeIf { it.size > 1 }?.let { putStringArrayListExtra(EXTRA_LIVE_LINES, ArrayList(it)) }
         title?.let { putExtra(EXTRA_MEDIA_TITLE, it) }
         if (grantReadPermission) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }

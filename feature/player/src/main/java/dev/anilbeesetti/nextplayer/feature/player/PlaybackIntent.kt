@@ -19,6 +19,15 @@ const val EXTRA_MEDIA_KEY = "dev.anilbeesetti.nextplayer.extra.MEDIA_KEY"
 const val EXTRA_MEDIA_KEYS = "dev.anilbeesetti.nextplayer.extra.MEDIA_KEYS"
 
 /**
+ * Intent extra listing every line a broadcast can be reached by, most reliable first.
+ *
+ * A channel is one station carried by several servers, any of which may be down or unreachable from
+ * where the viewer is. Handing the player all of them lets it move on to the next by itself instead
+ * of asking the viewer to guess which of a list of identically named entries works today.
+ */
+const val EXTRA_LIVE_LINES = "dev.anilbeesetti.nextplayer.extra.LIVE_LINES"
+
+/**
  * Intent extra naming the media in a way worth showing to the user.
  *
  * Without it a title is taken from the URI, which suits a file but not a live channel: its URL says

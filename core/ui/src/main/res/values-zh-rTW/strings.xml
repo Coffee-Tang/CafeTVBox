@@ -397,6 +397,8 @@
     <string name="no_playlist_sources_title">還沒有直播來源</string>
     <string name="no_playlist_sources_description">新增 m3u 或 m3u8 網址，即可瀏覽與觀看直播頻道。</string>
     <string name="error_ipv6_unreachable">這個頻道只透過 IPv6 播送，而目前的網路沒有 IPv6 連線。請換一個一般位址的頻道，或先讓 IPv6 可用：在路由器上啟用 IPv6，並關閉會阻擋 IPv6 的 VPN。</string>
+    <string name="live_trying_line">正在嘗試第 %1$d/%2$d 條線路…</string>
+    <string name="live_no_line_reachable">這個頻道的所有線路都連不上</string>
     <string name="preset_sources">常用來源</string>
     <string name="preset_iptv_org_chinese">iptv-org · 中文頻道</string>
     <string name="preset_iptv_org_chinese_description">開源清單，約 200 個中文頻道。</string>
