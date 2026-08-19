@@ -142,6 +142,7 @@ private fun ChannelBrowser(
         )
         ChannelList(
             channels = uiState.selectedChannels,
+            nowPlaying = uiState.nowPlaying,
             onPlayChannel = onPlayChannel,
             modifier = Modifier
                 .fillMaxSize()
@@ -203,6 +204,7 @@ private fun GroupList(
 @Composable
 private fun ChannelList(
     channels: List<LiveChannel>,
+    nowPlaying: Map<String, String>,
     onPlayChannel: (LiveChannel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -214,6 +216,7 @@ private fun ChannelList(
         items(items = channels, key = { channel -> channel.name }) { channel ->
             ChannelItem(
                 channel = channel,
+                nowPlaying = nowPlaying[channel.name],
                 isFirstItem = channel == channels.firstOrNull(),
                 isLastItem = channel == channels.lastOrNull(),
                 onClick = { onPlayChannel(channel) },
@@ -226,6 +229,7 @@ private fun ChannelList(
 @Composable
 private fun ChannelItem(
     channel: LiveChannel,
+    nowPlaying: String?,
     isFirstItem: Boolean,
     isLastItem: Boolean,
     onClick: () -> Unit,
@@ -262,12 +266,23 @@ private fun ChannelItem(
             }
         },
         content = {
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (nowPlaying != null) {
+                    Text(
+                        text = nowPlaying,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         },
         trailingContent = {
             Icon(

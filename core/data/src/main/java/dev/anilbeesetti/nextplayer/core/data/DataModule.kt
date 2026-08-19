@@ -4,6 +4,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.anilbeesetti.nextplayer.core.data.repository.EpgRepository
+import dev.anilbeesetti.nextplayer.core.data.repository.HttpEpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.HttpLiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
@@ -88,4 +90,10 @@ interface DataModule {
     fun bindsLiveChannelRepository(
         liveChannelRepository: HttpLiveChannelRepository,
     ): LiveChannelRepository
+
+    @Binds
+    @Singleton
+    fun bindsEpgRepository(
+        epgRepository: HttpEpgRepository,
+    ): EpgRepository
 }
