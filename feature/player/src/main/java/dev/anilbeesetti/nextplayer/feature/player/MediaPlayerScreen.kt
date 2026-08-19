@@ -83,11 +83,13 @@ import dev.anilbeesetti.nextplayer.feature.player.extensions.formatted
 import dev.anilbeesetti.nextplayer.feature.player.extensions.nameRes
 import dev.anilbeesetti.nextplayer.feature.player.state.ControlsVisibilityState
 import dev.anilbeesetti.nextplayer.feature.player.state.LiveLinesState
+import dev.anilbeesetti.nextplayer.feature.player.state.PlaybackFailureResponse
 import dev.anilbeesetti.nextplayer.feature.player.state.VerticalGesture
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberBrightnessState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberControlsVisibilityState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberErrorState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberLiveLinesState
+import dev.anilbeesetti.nextplayer.feature.player.state.rememberLiveRetryState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberMediaPresentationState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberMetadataState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberPictureInPictureState
@@ -97,6 +99,7 @@ import dev.anilbeesetti.nextplayer.feature.player.state.rememberTapGestureState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberVideoZoomAndContentScaleState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberVolumeAndBrightnessGestureState
 import dev.anilbeesetti.nextplayer.feature.player.state.rememberVolumeState
+import dev.anilbeesetti.nextplayer.feature.player.state.responseToPlaybackFailure
 import dev.anilbeesetti.nextplayer.feature.player.state.seekAmountFormatted
 import dev.anilbeesetti.nextplayer.feature.player.state.seekToPositionFormated
 import dev.anilbeesetti.nextplayer.feature.player.ui.DoubleTapIndicator
@@ -181,12 +184,30 @@ fun MediaPlayerScreen(
         },
     )
 
-    // A line that fails outright is worth giving up on at once, without the wait a silent one needs.
+    val liveRetryState = rememberLiveRetryState(player = player)
+    val failureResponse = errorState.error?.let {
+        responseToPlaybackFailure(
+            isLive = mediaPresentationState.isLive,
+            mayRetryLine = liveRetryState.mayRetryLine,
+            hasAnotherLine = liveLinesState.hasAnotherLine,
+        )
+    }
+
     LaunchedEffect(errorState.error) {
-        if (errorState.error != null && liveLinesState.switchToNextLine()) {
-            errorState.dismiss()
+        when (failureResponse) {
+            PlaybackFailureResponse.RETRY_AT_LIVE_EDGE -> {
+                errorState.dismiss()
+                liveRetryState.retryAtLiveEdge()
+            }
+            PlaybackFailureResponse.SWITCH_LINE -> {
+                if (liveLinesState.switchToNextLine()) errorState.dismiss()
+            }
+            PlaybackFailureResponse.GIVE_UP, null -> Unit
         }
     }
+
+    // However a line was arrived at, it starts out owing the viewer nothing for the one before it.
+    LaunchedEffect(liveLinesState.lineInUse) { liveRetryState.onLineChanged() }
 
     LaunchedEffect(pictureInPictureState.isInPictureInPictureMode) {
         if (pictureInPictureState.isInPictureInPictureMode) {
@@ -533,8 +554,9 @@ fun MediaPlayerScreen(
         }
     }
 
-    // A channel with a line left to try is being seen to, so saying it failed would be premature.
-    errorState.error?.takeIf { !liveLinesState.hasAnotherLine }?.let { error ->
+    // A channel still being asked again, or with a line left to try, is being seen to; saying it
+    // failed while either is under way would be premature.
+    errorState.error?.takeIf { failureResponse == PlaybackFailureResponse.GIVE_UP }?.let { error ->
         AlertDialog(
             onDismissRequest = { },
             title = {
