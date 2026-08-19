@@ -13,6 +13,7 @@ import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.isNetworkBrowsableEntry
+import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamRequest
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import dev.anilbeesetti.nextplayer.core.media.network.sftp.HostKeyMismatch
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
@@ -44,7 +45,10 @@ data class NetworkBrowseError(
 )
 
 /** A network file ready to play: [uri] is the proxy URL, [mediaKey] the identity that outlives it. */
-data class NetworkPlaybackRequest(val uri: Uri, val mediaKey: String)
+data class NetworkPlaybackItem(val uri: Uri, val mediaKey: String)
+
+/** The files to hand the player, and which of them the viewer asked for. */
+data class NetworkPlaybackRequest(val items: List<NetworkPlaybackItem>, val startIndex: Int)
 
 /**
  * Browses a single folder on a network connection. Each folder is its own navigation destination
@@ -141,15 +145,27 @@ class NetworkBrowseViewModel @AssistedInject constructor(
         if (currentPath == null || client?.isConnected() != true) connectAndLoad() else loadCurrent()
     }
 
+    /**
+     * Plays [file], queueing the rest of the folder after it so playback carries on to the next
+     * one, in the order the folder is listed in.
+     */
     fun playVideo(file: NetworkFile) {
         val conn = connection ?: return
-        if (file.isDirectory) return
+        val queue = folderQueueFor(files = _uiState.value.files, clicked = file) ?: return
         viewModelScope.launch {
-            val url = streamingProxy.registerStream(conn, file.path, file.name)
+            val urls = streamingProxy.registerStreams(
+                connection = conn,
+                files = queue.files.map { NetworkStreamRequest(path = it.path, name = it.name) },
+            )
             _playEvents.send(
                 NetworkPlaybackRequest(
-                    uri = url.toUri(),
-                    mediaKey = NetworkMediaKey(connectionId = connectionId, path = file.path).toString(),
+                    items = queue.files.mapIndexed { index, queued ->
+                        NetworkPlaybackItem(
+                            uri = urls[index].toUri(),
+                            mediaKey = NetworkMediaKey(connectionId = connectionId, path = queued.path).toString(),
+                        )
+                    },
+                    startIndex = queue.startIndex,
                 ),
             )
         }

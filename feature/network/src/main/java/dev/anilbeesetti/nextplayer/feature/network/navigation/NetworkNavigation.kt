@@ -16,6 +16,7 @@ import dev.anilbeesetti.nextplayer.feature.network.screens.addconnection.AddConn
 import dev.anilbeesetti.nextplayer.feature.network.screens.addconnection.AddConnectionViewModel
 import dev.anilbeesetti.nextplayer.feature.network.screens.browse.NetworkBrowseScreenRoute
 import dev.anilbeesetti.nextplayer.feature.network.screens.browse.NetworkBrowseViewModel
+import dev.anilbeesetti.nextplayer.feature.network.screens.browse.NetworkPlaybackRequest
 import dev.anilbeesetti.nextplayer.feature.network.screens.list.NetworkScreenRoute
 import kotlinx.serialization.Serializable
 
@@ -79,13 +80,13 @@ fun EntryProviderScope<NavKey>.addConnectionEntry(
 
 fun EntryProviderScope<NavKey>.networkBrowseEntry(
     onNavigateUp: () -> Unit,
-    onPlayVideo: (uri: Uri, mediaKey: String) -> Unit,
+    onPlayVideos: (request: NetworkPlaybackRequest) -> Unit,
     onNavigateToFolder: (connectionId: Long, path: String) -> Unit,
 ) {
     entry<NetworkBrowseRoute> { key ->
         NetworkBrowseScreenRoute(
             onNavigateUp = onNavigateUp,
-            onPlayVideo = onPlayVideo,
+            onPlayVideos = onPlayVideos,
             onNavigateToFolder = onNavigateToFolder,
             viewModel = hiltViewModel<NetworkBrowseViewModel, NetworkBrowseViewModel.Factory>(
                 creationCallback = { factory -> factory.create(key.connectionId, key.path) },

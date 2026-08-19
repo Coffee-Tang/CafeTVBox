@@ -10,6 +10,15 @@ package dev.anilbeesetti.nextplayer.feature.player
 const val EXTRA_MEDIA_KEY = "dev.anilbeesetti.nextplayer.extra.MEDIA_KEY"
 
 /**
+ * Intent extra giving a durable identity to every item of the playlist, in the same order.
+ *
+ * A folder on a network share is queued whole, so the items played after the requested one need
+ * their own identities too — otherwise they would be remembered under a proxy URL that is already
+ * gone by the next session.
+ */
+const val EXTRA_MEDIA_KEYS = "dev.anilbeesetti.nextplayer.extra.MEDIA_KEYS"
+
+/**
  * Intent extra naming the media in a way worth showing to the user.
  *
  * Without it a title is taken from the URI, which suits a file but not a live channel: its URL says

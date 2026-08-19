@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEY
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEYS
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_TITLE
 import dev.anilbeesetti.nextplayer.feature.player.PlayerActivity
 import dev.anilbeesetti.nextplayer.feature.player.utils.PlayerApi
@@ -90,12 +91,30 @@ internal fun Context.startPlayback(
     )
 }
 
+/** Plays a queue whose items each have a durable identity, starting at [startIndex]. */
+internal fun Context.startPlayback(
+    uris: List<Uri>,
+    mediaKeys: List<String>,
+    startIndex: Int,
+) {
+    val uri = uris.getOrNull(startIndex) ?: return
+    startPlayback(
+        uri = uri,
+        playlist = uris,
+        mediaKey = null,
+        mediaKeys = mediaKeys,
+        title = null,
+        grantReadPermission = false,
+    )
+}
+
 private fun Context.startPlayback(
     uri: Uri,
     playlist: List<Uri>?,
     mediaKey: String?,
     title: String?,
     grantReadPermission: Boolean,
+    mediaKeys: List<String>? = null,
 ) {
     if (grantReadPermission) {
         (playlist ?: listOf(uri)).forEach {
@@ -107,6 +126,7 @@ private fun Context.startPlayback(
         data = uri
         playlist?.let { putParcelableArrayListExtra(PlayerApi.API_PLAYLIST, ArrayList(it)) }
         mediaKey?.let { putExtra(EXTRA_MEDIA_KEY, it) }
+        mediaKeys?.let { putStringArrayListExtra(EXTRA_MEDIA_KEYS, ArrayList(it)) }
         title?.let { putExtra(EXTRA_MEDIA_TITLE, it) }
         if (grantReadPermission) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }

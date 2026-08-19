@@ -17,14 +17,14 @@ class NetworkStreamInitializerTest {
     @Test
     fun `concurrent initial requests connect and fetch file size once`() = runTest {
         val client = BlockingConnectClient()
-        val initializer = NetworkStreamInitializer(client, "/videos/movie.mp4")
+        val initializer = NetworkStreamInitializer(client)
 
         val results = listOf(
             async {
-                initializer.initialize().also { client.openStream("/videos/movie.mp4") }
+                initializer.initialize("/videos/movie.mp4").also { client.openStream("/videos/movie.mp4") }
             },
             async {
-                initializer.initialize().also { client.openStream("/videos/movie.mp4") }
+                initializer.initialize("/videos/movie.mp4").also { client.openStream("/videos/movie.mp4") }
             },
         )
         client.connectStarted.await()
@@ -34,6 +34,24 @@ class NetworkStreamInitializerTest {
         assertEquals(1, client.connectCalls.get())
         assertEquals(1, client.fileSizeCalls.get())
         assertEquals(2, client.openStreamCalls.get())
+    }
+
+    @Test
+    fun `queued files share one connection and are sized once each`() = runTest {
+        val client = BlockingConnectClient()
+        val initializer = NetworkStreamInitializer(client)
+
+        val results = listOf(
+            async { initializer.initialize("/videos/first.mkv") },
+            async { initializer.initialize("/videos/second.mkv") },
+            async { initializer.initialize("/videos/first.mkv") },
+        )
+        client.connectStarted.await()
+        client.allowConnect.complete(Unit)
+
+        assertEquals(listOf(1234L, 1234L, 1234L), results.awaitAll())
+        assertEquals(1, client.connectCalls.get())
+        assertEquals(2, client.fileSizeCalls.get())
     }
 
     private class BlockingConnectClient : NetworkClient {

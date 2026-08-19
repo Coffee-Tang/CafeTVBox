@@ -237,13 +237,20 @@ class PlayerActivity : ComponentActivity() {
             it == (mediaContentUri ?: uri).toString()
         }.takeIf { it >= 0 } ?: 0
 
-        // Only the requested item can carry a durable key; siblings are identified by their own URI.
+        // A caller that queued network files gives every item a durable key; otherwise only the
+        // requested item can carry one, and siblings are identified by their own URI.
+        val mediaKeys = intent.getStringArrayListExtra(EXTRA_MEDIA_KEYS)
         val mediaKey = intent.getStringExtra(EXTRA_MEDIA_KEY)
+        fun mediaIdFor(index: Int, uri: String): String = when {
+            mediaKeys != null -> mediaKeys.getOrNull(index) ?: uri
+            index == mediaItemIndexToPlay -> mediaKey ?: uri
+            else -> uri
+        }
 
         val mediaItems = playlist.mapIndexed { index, uri ->
             MediaItem.Builder().apply {
                 setUri(uri)
-                setMediaId(if (index == mediaItemIndexToPlay) mediaKey ?: uri else uri)
+                setMediaId(mediaIdFor(index, uri))
                 if (index == mediaItemIndexToPlay) {
                     setMediaMetadata(
                         MediaMetadata.Builder().apply {
