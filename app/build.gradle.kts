@@ -15,9 +15,12 @@ android {
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        applicationId = "dev.anilbeesetti.nextplayer"
-        versionCode = 72
-        versionName = "0.17.5"
+        // Deliberately unrelated to the source package, which stays as upstream NextPlayer's so the
+        // fork can keep merging from it. This is what decides identity, and so what lets both apps
+        // be installed side by side.
+        applicationId = "tv.cafesoft.player"
+        versionCode = 1
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

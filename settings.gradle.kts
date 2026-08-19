@@ -31,7 +31,7 @@ dependencyResolutionManagement {
 //    }
 //}
 
-rootProject.name = "NextPlayer"
+rootProject.name = "CafePlayer"
 include(":app")
 include(":core:common")
 include(":core:data")
