@@ -1,10 +1,22 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kotlinSerialization)
 }
+
+/**
+ * The key this build signs catalogue requests with, named `tmdb.api.key` in `local.properties` so
+ * that a secret is supplied by whoever builds and never committed. A build given none still builds
+ * and runs; the catalogue reports that it has no key when something asks it for a work.
+ */
+val tmdbApiKey: String = Properties().apply {
+    val properties = rootProject.file("local.properties")
+    if (properties.isFile) properties.inputStream().use { load(it) }
+}.getProperty("tmdb.api.key", "")
 
 android {
     namespace = "dev.anilbeesetti.nextplayer.core.data"
@@ -12,6 +24,11 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
+        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {
@@ -36,6 +53,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.github.anilbeesetti.nextlib.mediainfo)
 
     // Hilt

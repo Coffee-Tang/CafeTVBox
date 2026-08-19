@@ -41,6 +41,16 @@ internal fun <T> httpFetch(url: String, read: (InputStream) -> T): T {
     throw IOException("Too many redirects")
 }
 
+/**
+ * The body [url] serves, read as text, unpacked first if it turns out to have arrived gzipped.
+ *
+ * Named so that it can be handed to whatever wants a body without that caller having to say how a
+ * body is fetched, which is what lets a test answer in its place.
+ */
+internal fun httpText(url: String): String = httpFetch(url) { body ->
+    body.unpacked().bufferedReader().readText()
+}
+
 private const val CONNECT_TIMEOUT_MS = 15_000
 private const val READ_TIMEOUT_MS = 20_000
 private const val MAX_REDIRECTS = 5

@@ -7,6 +7,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dev.anilbeesetti.nextplayer.core.data.catalogue.TmdbApiKey
 import dev.anilbeesetti.nextplayer.core.data.repository.EpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.HttpEpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.HttpLiveChannelRepository
@@ -120,5 +121,14 @@ interface DataModule {
         @PlaylistStore
         fun providesPlaylistStore(@ApplicationContext context: Context): File =
             File(context.filesDir, "playlists")
+
+        /**
+         * The catalogue key this build was given, which is nothing at all in a build whose
+         * `local.properties` named none. Searching then fails saying so, rather than asking TMDB a
+         * question it can only refuse.
+         */
+        @Provides
+        @Singleton
+        fun providesTmdbApiKey(): TmdbApiKey = TmdbApiKey { BuildConfig.TMDB_API_KEY.ifEmpty { null } }
     }
 }
