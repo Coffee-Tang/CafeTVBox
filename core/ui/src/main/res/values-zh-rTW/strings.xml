@@ -401,6 +401,7 @@
     <string name="live_trying_line">正在嘗試第 %1$d/%2$d 條線路…</string>
     <string name="live_no_line_reachable">這個頻道的所有線路都連不上</string>
     <string name="live_lines">線路</string>
+    <string name="live_edge">直播中</string>
     <string name="live_line">線路 %1$d</string>
     <string name="preset_sources">常用來源</string>
     <string name="preset_iptv_org_chinese">iptv-org · 中文頻道</string>

@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
@@ -65,9 +66,13 @@ import dev.anilbeesetti.nextplayer.feature.player.buttons.LoopButton
 import dev.anilbeesetti.nextplayer.feature.player.buttons.PlayerButton
 import dev.anilbeesetti.nextplayer.feature.player.buttons.ShuffleButton
 import dev.anilbeesetti.nextplayer.feature.player.extensions.drawableRes
+import dev.anilbeesetti.nextplayer.feature.player.extensions.formatted
 import dev.anilbeesetti.nextplayer.feature.player.extensions.noRippleClickable
+import dev.anilbeesetti.nextplayer.feature.player.state.LivePosition
 import dev.anilbeesetti.nextplayer.feature.player.state.MediaPresentationState
 import dev.anilbeesetti.nextplayer.feature.player.state.durationFormatted
+import dev.anilbeesetti.nextplayer.feature.player.state.livePositionOf
+import dev.anilbeesetti.nextplayer.feature.player.state.offersRewind
 import dev.anilbeesetti.nextplayer.feature.player.state.pendingPositionFormatted
 import dev.anilbeesetti.nextplayer.feature.player.state.positionFormatted
 
@@ -106,36 +111,45 @@ fun ControlsBottomView(
             modifier = Modifier.padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            var showPendingPosition by rememberSaveable { mutableStateOf(false) }
+            if (isLive) {
+                LivePositionReadout(
+                    livePosition = livePositionOf(
+                        positionMs = mediaPresentationState.position,
+                        liveEdgeMs = mediaPresentationState.liveEdgePosition,
+                    ),
+                )
+            } else {
+                var showPendingPosition by rememberSaveable { mutableStateOf(false) }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = if (isTv) {
-                    Modifier
-                } else {
-                    Modifier.noRippleClickable {
-                        showPendingPosition = !showPendingPosition
-                    }
-                },
-            ) {
-                Text(
-                    text = when (showPendingPosition) {
-                        true -> "-${mediaPresentationState.pendingPositionFormatted}"
-                        false -> mediaPresentationState.positionFormatted
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = if (isTv) {
+                        Modifier
+                    } else {
+                        Modifier.noRippleClickable {
+                            showPendingPosition = !showPendingPosition
+                        }
                     },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
-                )
-                Text(
-                    text = " / ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
-                )
-                Text(
-                    text = mediaPresentationState.durationFormatted,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
-                )
+                ) {
+                    Text(
+                        text = when (showPendingPosition) {
+                            true -> "-${mediaPresentationState.pendingPositionFormatted}"
+                            false -> mediaPresentationState.positionFormatted
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                    )
+                    Text(
+                        text = " / ",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                    )
+                    Text(
+                        text = mediaPresentationState.durationFormatted,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White,
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -152,13 +166,15 @@ fun ControlsBottomView(
                 }
             }
         }
-        PlayerSeekbar(
-            modifier = seekBarModifier,
-            position = mediaPresentationState.position.toFloat(),
-            duration = mediaPresentationState.duration.toFloat(),
-            onSeek = { onSeek(it.toLong()) },
-            onSeekFinished = { onSeekEnd() },
-        )
+        if (offersRewind(isLive = isLive, windowMs = mediaPresentationState.duration)) {
+            PlayerSeekbar(
+                modifier = seekBarModifier,
+                position = mediaPresentationState.position.toFloat(),
+                duration = mediaPresentationState.duration.toFloat(),
+                onSeek = { onSeek(it.toLong()) },
+                onSeekFinished = { onSeekEnd() },
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -201,6 +217,44 @@ fun ControlsBottomView(
                 ShuffleButton(player = player)
             }
         }
+    }
+}
+
+/**
+ * Says that a broadcast is live, and how far behind it the viewer is when they have rewound.
+ *
+ * A viewer at the edge is told only that, there being no elapsed time worth reporting for
+ * something with no beginning to have elapsed from.
+ */
+@Composable
+private fun LivePositionReadout(livePosition: LivePosition) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (livePosition is LivePosition.BehindLiveEdge) {
+            Text(
+                text = "-${livePosition.behindBy.formatted()} /",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(
+                    color = when (livePosition) {
+                        LivePosition.AtLiveEdge -> Color.Red
+                        is LivePosition.BehindLiveEdge -> Color.White.copy(alpha = 0.5f)
+                    },
+                    shape = CircleShape,
+                ),
+        )
+        Text(
+            text = stringResource(R.string.live_edge),
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White,
+        )
     }
 }
 
