@@ -189,21 +189,19 @@ class CrashActivity : ComponentActivity() {
         deviceInfo: String,
         crashLogs: String? = null,
         logcat: String,
-    ): String {
-        return StringBuilder().apply {
-            appendLine(deviceInfo)
-            appendLine()
-            if (!crashLogs.isNullOrBlank()) {
-                appendLine("-".repeat(50))
-                appendLine("Exception:")
-                appendLine(crashLogs)
-                appendLine()
-            }
+    ): String = StringBuilder().apply {
+        appendLine(deviceInfo)
+        appendLine()
+        if (!crashLogs.isNullOrBlank()) {
             appendLine("-".repeat(50))
-            appendLine("Logcat:")
-            appendLine(logcat)
-        }.toString()
-    }
+            appendLine("Exception:")
+            appendLine(crashLogs)
+            appendLine()
+        }
+        appendLine("-".repeat(50))
+        appendLine("Logcat:")
+        appendLine(logcat)
+    }.toString()
 
     private suspend fun collectLogcat(): String = withContext(Dispatchers.IO) {
         val process = Runtime.getRuntime()

@@ -13,10 +13,8 @@ import dev.anilbeesetti.nextplayer.core.model.Video
 import java.io.Serializable
 
 @Composable
-fun rememberSelectionManager(): SelectionManager {
-    return rememberSaveable(saver = SelectionManager.Saver) {
-        SelectionManager()
-    }
+fun rememberSelectionManager(): SelectionManager = rememberSaveable(saver = SelectionManager.Saver) {
+    SelectionManager()
 }
 
 @Stable
@@ -83,13 +81,9 @@ class SelectionManager(
         selectionItems = emptySet()
     }
 
-    fun isFolderSelected(folder: Folder): Boolean {
-        return selectionItems.find { it.id == folder.path } != null
-    }
+    fun isFolderSelected(folder: Folder): Boolean = selectionItems.find { it.id == folder.path } != null
 
-    fun isVideoSelected(video: Video): Boolean {
-        return selectionItems.find { it.id == video.uriString } != null
-    }
+    fun isVideoSelected(video: Video): Boolean = selectionItems.find { it.id == video.uriString } != null
 
     companion object {
         @Suppress("UNCHECKED_CAST")
@@ -110,7 +104,7 @@ class SelectionManager(
     }
 }
 
-sealed interface SelectionItem: Serializable {
+sealed interface SelectionItem : Serializable {
     @Stable
     data class Folder(
         override val name: String,

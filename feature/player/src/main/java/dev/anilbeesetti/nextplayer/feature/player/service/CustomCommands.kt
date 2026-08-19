@@ -24,13 +24,9 @@ enum class CustomCommands(val customAction: String) {
     val sessionCommand = SessionCommand(customAction, Bundle.EMPTY)
 
     companion object {
-        fun fromSessionCommand(sessionCommand: SessionCommand): CustomCommands? {
-            return entries.find { it.customAction == sessionCommand.customAction }
-        }
+        fun fromSessionCommand(sessionCommand: SessionCommand): CustomCommands? = entries.find { it.customAction == sessionCommand.customAction }
 
-        fun asSessionCommands(): List<SessionCommand> {
-            return entries.map { it.sessionCommand }
-        }
+        fun asSessionCommands(): List<SessionCommand> = entries.map { it.sessionCommand }
 
         const val SUBTITLE_TRACK_URI_KEY = "subtitle_track_uri"
         const val SKIP_SILENCE_ENABLED_KEY = "skip_silence_enabled"

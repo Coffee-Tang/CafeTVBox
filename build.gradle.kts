@@ -17,7 +17,6 @@ subprojects {
     apply(plugin = rootProject.libs.plugins.aboutLibraries.get().pluginId)
 
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-        android.set(true)
         outputColorName.set("RED")
         ignoreFailures.set(false)
     }

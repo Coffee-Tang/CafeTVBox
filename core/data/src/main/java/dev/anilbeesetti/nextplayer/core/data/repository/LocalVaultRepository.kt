@@ -52,13 +52,11 @@ class LocalVaultRepository @Inject constructor(
         File(base, VAULT_DIR_NAME).apply { if (!exists()) mkdirs() }
     }
 
-    override fun observeHiddenVideos(): Flow<List<Video>> {
-        return combine(hiddenVideoDao.getAll(), pendingVaultPaths) { entities, pendingPaths ->
-            entities
-                .filterNot { it.vaultPath in pendingPaths }
-                .filter { File(it.vaultPath).exists() }
-                .map { it.toVideo() }
-        }
+    override fun observeHiddenVideos(): Flow<List<Video>> = combine(hiddenVideoDao.getAll(), pendingVaultPaths) { entities, pendingPaths ->
+        entities
+            .filterNot { it.vaultPath in pendingPaths }
+            .filter { File(it.vaultPath).exists() }
+            .map { it.toVideo() }
     }
 
     override suspend fun hideVideos(videos: List<Video>) = vaultMutationMutex.withLock {
@@ -114,18 +112,16 @@ class LocalVaultRepository @Inject constructor(
         )
     }
 
-    private fun Video.toHiddenVideoEntity(destination: File): HiddenVideoEntity {
-        return HiddenVideoEntity(
-            vaultPath = destination.absolutePath,
-            originalPath = path,
-            displayName = nameWithExtension,
-            duration = duration,
-            size = size,
-            width = width,
-            height = height,
-            hiddenAt = System.currentTimeMillis(),
-        )
-    }
+    private fun Video.toHiddenVideoEntity(destination: File): HiddenVideoEntity = HiddenVideoEntity(
+        vaultPath = destination.absolutePath,
+        originalPath = path,
+        displayName = nameWithExtension,
+        duration = duration,
+        size = size,
+        width = width,
+        height = height,
+        hiddenAt = System.currentTimeMillis(),
+    )
 
     private data class HideReservation(
         val rowId: Long,
@@ -141,18 +137,16 @@ class LocalVaultRepository @Inject constructor(
 
     private suspend fun moveReservedVideos(
         reservations: List<HideReservation>,
-    ): MoveOutcome {
-        return try {
-            MoveOutcome.Completed(
-                mediaOperationsService.moveMedia(
-                    reservations.associate { it.sourceUri to it.destination },
-                ),
-            )
-        } catch (e: CancellationException) {
-            MoveOutcome.Cancelled(e)
-        } catch (e: Exception) {
-            MoveOutcome.Failed
-        }
+    ): MoveOutcome = try {
+        MoveOutcome.Completed(
+            mediaOperationsService.moveMedia(
+                reservations.associate { it.sourceUri to it.destination },
+            ),
+        )
+    } catch (e: CancellationException) {
+        MoveOutcome.Cancelled(e)
+    } catch (e: Exception) {
+        MoveOutcome.Failed
     }
 
     private fun createVaultDestination(displayName: String): File {
@@ -176,14 +170,12 @@ class LocalVaultRepository @Inject constructor(
         }
     }
 
-    private fun MoveOutcome.wasCommitted(reservation: HideReservation): Boolean {
-        return when (this) {
-            is MoveOutcome.Completed -> {
-                movedFiles[reservation.sourceUri] == reservation.destination &&
-                    reservation.destination.exists()
-            }
-            MoveOutcome.Failed, is MoveOutcome.Cancelled -> reservation.destination.exists()
+    private fun MoveOutcome.wasCommitted(reservation: HideReservation): Boolean = when (this) {
+        is MoveOutcome.Completed -> {
+            movedFiles[reservation.sourceUri] == reservation.destination &&
+                reservation.destination.exists()
         }
+        MoveOutcome.Failed, is MoveOutcome.Cancelled -> reservation.destination.exists()
     }
 
     private fun MoveOutcome.rethrowCancellation() {

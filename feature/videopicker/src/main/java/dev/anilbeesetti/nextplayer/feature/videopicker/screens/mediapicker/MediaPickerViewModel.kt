@@ -40,9 +40,10 @@ import dev.anilbeesetti.nextplayer.core.model.PlaylistSummary
 import dev.anilbeesetti.nextplayer.core.model.RecentMedium
 import dev.anilbeesetti.nextplayer.core.model.Video
 import dev.anilbeesetti.nextplayer.core.model.findClosestFolder
-import dev.anilbeesetti.nextplayer.core.ui.base.DataState
 import dev.anilbeesetti.nextplayer.core.ui.R
+import dev.anilbeesetti.nextplayer.core.ui.base.DataState
 import dev.anilbeesetti.nextplayer.feature.videopicker.state.SelectionItem
+import java.io.File
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +51,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 @HiltViewModel(assistedFactory = MediaPickerViewModel.Factory::class)
 class MediaPickerViewModel @AssistedInject constructor(
@@ -172,7 +172,7 @@ class MediaPickerViewModel @AssistedInject constructor(
                     currentState.copy(
                         mediaDataState = DataState.Success(media),
                         recentlyPlayedVideo = recentlyPlayed,
-                        recentlyPlayedFolder = recentlyPlayed?.let { media?.folders?.findClosestFolder(it.path) }
+                        recentlyPlayedFolder = recentlyPlayed?.let { media?.folders?.findClosestFolder(it.path) },
                     )
                 }
             }
@@ -525,9 +525,7 @@ class MediaPickerViewModel @AssistedInject constructor(
         }.distinctBy(Video::uriString)
     }
 
-    private suspend fun Set<SelectionItem>.toVideoUris(): List<Uri> {
-        return toVideos().map { it.uriString.toUri() }
-    }
+    private suspend fun Set<SelectionItem>.toVideoUris(): List<Uri> = toVideos().map { it.uriString.toUri() }
 
     private companion object {
         /** How many items the home screen offers to continue; the rest live on the history screen. */

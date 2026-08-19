@@ -39,35 +39,33 @@ class GetSortedMediaUseCase @Inject constructor(
      * @return A flow emitting [MediaHolder] with videos and folders appropriate for the view mode.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    operator fun invoke(folderPath: String? = null): Flow<MediaHolder?> {
-        return preferencesRepository.applicationPreferences.flatMapLatest { preferences ->
-            when (preferences.mediaViewMode) {
-                MediaViewMode.FOLDER_TREE -> {
-                    getFolderTreeMediaUseCase(folderPath)
-                }
+    operator fun invoke(folderPath: String? = null): Flow<MediaHolder?> = preferencesRepository.applicationPreferences.flatMapLatest { preferences ->
+        when (preferences.mediaViewMode) {
+            MediaViewMode.FOLDER_TREE -> {
+                getFolderTreeMediaUseCase(folderPath)
+            }
 
-                MediaViewMode.FOLDERS -> {
-                    if (folderPath == null) {
-                        // At root: show all folders as a flat list
-                        getSortedFoldersUseCase().map { folders ->
-                            MediaHolder(videos = emptyList(), folders = folders)
-                        }
-                    } else {
-                        getSortedVideosUseCase(folderPath).map { videos ->
-                            val directVideos = videos.filter { it.parentPath == folderPath }
-                            MediaHolder(videos = directVideos, folders = emptyList())
-                        }
+            MediaViewMode.FOLDERS -> {
+                if (folderPath == null) {
+                    // At root: show all folders as a flat list
+                    getSortedFoldersUseCase().map { folders ->
+                        MediaHolder(videos = emptyList(), folders = folders)
                     }
-                }
-
-                MediaViewMode.VIDEOS -> {
+                } else {
                     getSortedVideosUseCase(folderPath).map { videos ->
-                        MediaHolder(videos = videos, folders = emptyList())
+                        val directVideos = videos.filter { it.parentPath == folderPath }
+                        MediaHolder(videos = directVideos, folders = emptyList())
                     }
                 }
             }
-        }.flowOn(defaultDispatcher)
-    }
+
+            MediaViewMode.VIDEOS -> {
+                getSortedVideosUseCase(folderPath).map { videos ->
+                    MediaHolder(videos = videos, folders = emptyList())
+                }
+            }
+        }
+    }.flowOn(defaultDispatcher)
 }
 
 /**

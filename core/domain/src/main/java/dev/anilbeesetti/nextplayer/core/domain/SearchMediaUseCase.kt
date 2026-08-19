@@ -145,7 +145,5 @@ private class SearchMatcher(query: String) {
         return isAtStart || isPrecededByBoundary
     }
 
-    private fun Char.isWordBoundary(): Boolean {
-        return this in listOf(' ', '_', '-', '.', '/', '\\', '[', ']', '(', ')')
-    }
+    private fun Char.isWordBoundary(): Boolean = this in listOf(' ', '_', '-', '.', '/', '\\', '[', ']', '(', ')')
 }

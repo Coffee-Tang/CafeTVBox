@@ -73,7 +73,7 @@ fun PlayerButton(
             enabled = isEnabled,
             modifier = modifier.size(40.dp).tvFocusRing(isTv),
             interactionSource = interactionSource,
-            content = content
+            content = content,
         )
     } else {
         CompositionLocalProvider(
@@ -84,9 +84,9 @@ fun PlayerButton(
                     pressedAlpha = 0.5f,
                     focusedAlpha = 0.5f,
                     draggedAlpha = 0.5f,
-                    hoveredAlpha = 0.5f
-                )
-            )
+                    hoveredAlpha = 0.5f,
+                ),
+            ),
         ) {
             IconButton(
                 onClick = {},

@@ -44,9 +44,7 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    suspend fun getPlaylistFromUri(uri: Uri): List<Video> {
-        return getSortedPlaylistUseCase.invoke(uri)
-    }
+    suspend fun getPlaylistFromUri(uri: Uri): List<Video> = getSortedPlaylistUseCase.invoke(uri)
 
     fun updateVideoZoom(uri: String, zoom: Float) {
         viewModelScope.launch {

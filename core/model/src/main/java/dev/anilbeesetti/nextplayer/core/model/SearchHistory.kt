@@ -17,11 +17,7 @@ data class SearchHistory(
         return copy(queries = updatedQueries.take(MAX_HISTORY_SIZE))
     }
 
-    fun removeQuery(query: String): SearchHistory {
-        return copy(queries = queries.filter { it != query })
-    }
+    fun removeQuery(query: String): SearchHistory = copy(queries = queries.filter { it != query })
 
-    fun clear(): SearchHistory {
-        return copy(queries = emptyList())
-    }
+    fun clear(): SearchHistory = copy(queries = emptyList())
 }

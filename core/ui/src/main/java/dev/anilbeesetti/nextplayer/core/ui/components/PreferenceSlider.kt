@@ -58,7 +58,10 @@ fun PreferenceSlider(
                     true
                 }
                 Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                    onReset?.let { it(); true } ?: false
+                    onReset?.let {
+                        it()
+                        true
+                    } ?: false
                 }
                 else -> false
             }

@@ -27,7 +27,6 @@ import java.net.URL
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -163,12 +162,10 @@ private fun Context.getDataColumn(
  * @param uri uri of the file
  * @return filename of the file
  */
-fun Context.getFilenameFromUri(uri: Uri): String {
-    return if (ContentResolver.SCHEME_FILE.equals(uri.scheme, ignoreCase = true)) {
-        File(uri.toString()).name
-    } else {
-        getFilenameFromContentUri(uri) ?: uri.lastPathSegment ?: ""
-    }
+fun Context.getFilenameFromUri(uri: Uri): String = if (ContentResolver.SCHEME_FILE.equals(uri.scheme, ignoreCase = true)) {
+    File(uri.toString()).name
+} else {
+    getFilenameFromContentUri(uri) ?: uri.lastPathSegment ?: ""
 }
 
 /**
@@ -242,12 +239,10 @@ suspend fun Context.scanPaths(paths: List<String>): Boolean = suspendCancellable
     }
 }
 
-suspend fun Context.scanPath(file: File): Boolean {
-    return if (file.isDirectory) {
-        file.listFiles()?.all { scanPath(it) } ?: true
-    } else {
-        scanPaths(listOf(file.path))
-    }
+suspend fun Context.scanPath(file: File): Boolean = if (file.isDirectory) {
+    file.listFiles()?.all { scanPath(it) } ?: true
+} else {
+    scanPaths(listOf(file.path))
 }
 
 suspend fun Context.scanStorage(
@@ -292,16 +287,12 @@ suspend fun Context.convertToUTF8(uri: Uri, charset: Charset? = null): Uri = wit
     }
 }
 
-private fun detectCharset(uri: Uri, context: Context): Charset {
-    return context.contentResolver.openInputStream(uri)?.use { inputStream ->
-        detectCharsetFromStream(inputStream)
-    } ?: StandardCharsets.UTF_8
-}
+private fun detectCharset(uri: Uri, context: Context): Charset = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+    detectCharsetFromStream(inputStream)
+} ?: StandardCharsets.UTF_8
 
-private fun detectCharset(url: URL): Charset {
-    return url.openStream().use { inputStream ->
-        detectCharsetFromStream(inputStream)
-    }
+private fun detectCharset(url: URL): Charset = url.openStream().use { inputStream ->
+    detectCharsetFromStream(inputStream)
 }
 
 private fun detectCharsetFromStream(inputStream: InputStream): Charset {
@@ -445,9 +436,7 @@ fun Context.getStorageVolumes() = try {
     listOf(Environment.getExternalStorageDirectory())
 }
 
-fun Context.appIcon(): Bitmap? {
-    return packageManager.getApplicationInfo(packageName, 0).loadIcon(packageManager)?.toBitmapOrNull()
-}
+fun Context.appIcon(): Bitmap? = packageManager.getApplicationInfo(packageName, 0).loadIcon(packageManager)?.toBitmapOrNull()
 
 val Context.isPipFeatureSupported: Boolean
     get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&

@@ -10,6 +10,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.anilbeesetti.nextplayer.core.common.di.ApplicationScope
 import dev.anilbeesetti.nextplayer.core.common.extensions.VIDEO_COLLECTION_URI
 import dev.anilbeesetti.nextplayer.core.common.extensions.prettyName
+import java.io.File
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -23,9 +26,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.withContext
-import java.io.File
-import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * [MediaService] implementation that queries the Android MediaStore for video files.
@@ -79,19 +79,15 @@ class MediaStoreMediaService @Inject constructor(
             replay = 1,
         )
 
-    override fun observeFolders(folderPath: String?): Flow<List<MediaFolder>> {
-        return mediaChanges
-            .map { fetchFolders(folderPath) }
-            .flowOn(Dispatchers.IO)
-            .distinctUntilChanged()
-    }
+    override fun observeFolders(folderPath: String?): Flow<List<MediaFolder>> = mediaChanges
+        .map { fetchFolders(folderPath) }
+        .flowOn(Dispatchers.IO)
+        .distinctUntilChanged()
 
-    override fun observeVideos(folderPath: String?): Flow<List<MediaVideo>> {
-        return mediaChanges
-            .map { fetchVideos(folderPath) }
-            .flowOn(Dispatchers.IO)
-            .distinctUntilChanged()
-    }
+    override fun observeVideos(folderPath: String?): Flow<List<MediaVideo>> = mediaChanges
+        .map { fetchVideos(folderPath) }
+        .flowOn(Dispatchers.IO)
+        .distinctUntilChanged()
 
     override suspend fun fetchFolders(folderPath: String?): List<MediaFolder> = withContext(Dispatchers.IO) {
         val videos = fetchVideos(folderPath)

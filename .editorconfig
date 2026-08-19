@@ -5,3 +5,6 @@ ij_kotlin_allow_trailing_comma_on_call_site = true
 ktlint_code_style = android_studio
 ktlint_standard_property-naming = disabled
 ktlint_function_naming_ignore_when_annotated_with = Composable
+# max_line_length is off, so function-signature merges every wrapped body expression
+# onto its signature line with no length ceiling, producing lines up to 270 characters.
+ktlint_standard_function-signature = disabled

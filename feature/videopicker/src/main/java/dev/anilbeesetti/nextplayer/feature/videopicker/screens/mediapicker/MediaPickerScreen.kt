@@ -484,78 +484,80 @@ internal fun MediaPickerScreen(
                     launchPermissionRequest = { permissionState.launchPermissionRequest() },
                 ) {}
             }
-        } else when (uiState.mediaDataState) {
-            is DataState.Error -> {
-            }
+        } else {
+            when (uiState.mediaDataState) {
+                is DataState.Error -> {
+                }
 
-            is DataState.Loading -> {
-                CenterCircularProgressBar(modifier = Modifier.padding(scaffoldPadding))
-            }
+                is DataState.Loading -> {
+                    CenterCircularProgressBar(modifier = Modifier.padding(scaffoldPadding))
+                }
 
-            is DataState.Success -> {
-                val containerModifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = scaffoldPadding.calculateTopPadding())
-                    .padding(start = scaffoldPadding.calculateStartPadding(LocalLayoutDirection.current) + 2.dp)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(MaterialTheme.colorScheme.background)
+                is DataState.Success -> {
+                    val containerModifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = scaffoldPadding.calculateTopPadding())
+                        .padding(start = scaffoldPadding.calculateStartPadding(LocalLayoutDirection.current) + 2.dp)
+                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                        .background(MaterialTheme.colorScheme.background)
 
-                val successContent: @Composable () -> Unit = {
-                    val updatedScaffoldPadding = scaffoldPadding.copy(
-                        top = 0.dp,
-                        start = 0.dp,
-                        bottom = scaffoldPadding.calculateBottomPadding(),
-                    )
-                    val mediaHolder = uiState.mediaDataState.value
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        if (showContinueWatching) {
-                            ContinueWatchingRow(
-                                items = uiState.recentlyPlayed,
-                                onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
-                                onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
-                                firstItemFocusRequester = if (isTv) continueWatchingFocusRequester else null,
-                                downFocusRequester = if (isTv && hasMedia) firstItemFocusRequester else null,
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            if (mediaHolder == null || mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty()) {
-                                NoVideosFound(contentPadding = updatedScaffoldPadding)
-                            } else {
-                                MediaView(
-                                    recentlyPlayedVideo = uiState.recentlyPlayedVideo,
-                                    recentlyPlayedFolder = uiState.recentlyPlayedFolder,
-                                    mediaHolder = mediaHolder,
-                                    preferences = uiState.preferences,
-                                    onFolderClick = { onAction(MediaPickerAction.OnFolderClick(it)) },
-                                    onVideoClick = { onAction(MediaPickerAction.OnPlayVideo(it)) },
-                                    selectionManager = selectionManager,
-                                    lazyGridState = lazyGridState,
-                                    firstItemFocusRequester = if (isTv) firstItemFocusRequester else null,
-                                    lastItemFocusRequester = if (isTv) lastItemFocusRequester else null,
-                                    restoredFocusKey = restoredFocusKey,
-                                    onItemFocused = { restoredFocusKey = it },
-                                    // Down from the last item goes to the FAB normally, or to the
-                                    // selection action bar while selecting (the FAB is hidden then).
-                                    lastItemDownFocusRequester = when {
-                                        !isTv -> null
-                                        selectionManager.isInSelectionMode -> firstActionFocusRequester
-                                        else -> fabFocusRequester
-                                    },
-                                    contentPadding = updatedScaffoldPadding,
+                    val successContent: @Composable () -> Unit = {
+                        val updatedScaffoldPadding = scaffoldPadding.copy(
+                            top = 0.dp,
+                            start = 0.dp,
+                            bottom = scaffoldPadding.calculateBottomPadding(),
+                        )
+                        val mediaHolder = uiState.mediaDataState.value
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            if (showContinueWatching) {
+                                ContinueWatchingRow(
+                                    items = uiState.recentlyPlayed,
+                                    onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
+                                    onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
+                                    firstItemFocusRequester = if (isTv) continueWatchingFocusRequester else null,
+                                    downFocusRequester = if (isTv && hasMedia) firstItemFocusRequester else null,
                                 )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                if (mediaHolder == null || mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty()) {
+                                    NoVideosFound(contentPadding = updatedScaffoldPadding)
+                                } else {
+                                    MediaView(
+                                        recentlyPlayedVideo = uiState.recentlyPlayedVideo,
+                                        recentlyPlayedFolder = uiState.recentlyPlayedFolder,
+                                        mediaHolder = mediaHolder,
+                                        preferences = uiState.preferences,
+                                        onFolderClick = { onAction(MediaPickerAction.OnFolderClick(it)) },
+                                        onVideoClick = { onAction(MediaPickerAction.OnPlayVideo(it)) },
+                                        selectionManager = selectionManager,
+                                        lazyGridState = lazyGridState,
+                                        firstItemFocusRequester = if (isTv) firstItemFocusRequester else null,
+                                        lastItemFocusRequester = if (isTv) lastItemFocusRequester else null,
+                                        restoredFocusKey = restoredFocusKey,
+                                        onItemFocused = { restoredFocusKey = it },
+                                        // Down from the last item goes to the FAB normally, or to the
+                                        // selection action bar while selecting (the FAB is hidden then).
+                                        lastItemDownFocusRequester = when {
+                                            !isTv -> null
+                                            selectionManager.isInSelectionMode -> firstActionFocusRequester
+                                            else -> fabFocusRequester
+                                        },
+                                        contentPadding = updatedScaffoldPadding,
+                                    )
+                                }
                             }
                         }
                     }
-                }
 
-                if (isTv) {
-                    Box(modifier = containerModifier) { successContent() }
-                } else {
-                    PullToRefreshBox(
-                        modifier = containerModifier,
-                        isRefreshing = uiState.refreshing,
-                        onRefresh = { onAction(MediaPickerAction.Refresh) },
-                    ) { successContent() }
+                    if (isTv) {
+                        Box(modifier = containerModifier) { successContent() }
+                    } else {
+                        PullToRefreshBox(
+                            modifier = containerModifier,
+                            isRefreshing = uiState.refreshing,
+                            onRefresh = { onAction(MediaPickerAction.Refresh) },
+                        ) { successContent() }
+                    }
                 }
             }
         }

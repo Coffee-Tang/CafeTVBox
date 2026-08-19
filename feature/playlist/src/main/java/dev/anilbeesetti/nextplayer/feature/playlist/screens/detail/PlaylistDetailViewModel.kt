@@ -33,7 +33,7 @@ class PlaylistDetailViewModel @AssistedInject constructor(
 ) : MviViewModel<PlaylistDetailUiState, PlaylistDetailUiAction>() {
 
     data class Input(
-        val playlistId: Long
+        val playlistId: Long,
     )
 
     data class Output(

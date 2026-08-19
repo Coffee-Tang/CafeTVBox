@@ -1,6 +1,5 @@
 package dev.anilbeesetti.nextplayer.feature.network.navigation
 
-import android.net.Uri
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
@@ -67,7 +66,7 @@ fun EntryProviderScope<NavKey>.addConnectionEntry(
             put(NavDisplay.PredictivePopTransitionKey) {
                 scaleIn(initialScale = 0.95f) togetherWith slideOutVertically { it }
             }
-        }
+        },
     ) { key ->
         AddConnectionScreenRoute(
             onNavigateUp = onNavigateUp,

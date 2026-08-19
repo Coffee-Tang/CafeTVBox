@@ -54,7 +54,6 @@ class LocalPlaylistRepository @Inject constructor(
             playedAt = System.currentTimeMillis(),
         )
     }
-
 }
 
 private fun String.validatedName(): String =

@@ -24,9 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import dev.anilbeesetti.nextplayer.settings.utils.rememberTvListFocusRequester
-import dev.anilbeesetti.nextplayer.settings.utils.tvFocusDown
-import dev.anilbeesetti.nextplayer.settings.utils.tvListFocus
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -66,6 +63,9 @@ import dev.anilbeesetti.nextplayer.core.ui.components.ClickablePreferenceItem
 import dev.anilbeesetti.nextplayer.core.ui.components.ListSectionTitle
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
+import dev.anilbeesetti.nextplayer.settings.utils.rememberTvListFocusRequester
+import dev.anilbeesetti.nextplayer.settings.utils.tvFocusDown
+import dev.anilbeesetti.nextplayer.settings.utils.tvListFocus
 import kotlinx.coroutines.launch
 
 private const val GITHUB_URL = "https://github.com/anilbeesetti/nextplayer"
@@ -133,7 +133,7 @@ fun AboutPreferencesScreen(
                             context = context,
                         )
                     },
-                    isFirstItem = true
+                    isFirstItem = true,
                 )
                 ClickablePreferenceItem(
                     title = stringResource(R.string.paypal),

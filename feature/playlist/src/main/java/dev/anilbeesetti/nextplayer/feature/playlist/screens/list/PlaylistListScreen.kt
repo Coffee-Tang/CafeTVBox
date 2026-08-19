@@ -1,6 +1,5 @@
 package dev.anilbeesetti.nextplayer.feature.playlist.screens.list
 
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,8 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -90,7 +88,7 @@ internal fun PlaylistListScreen(
                 actions = {
                     IconButton(
                         onClick = { onAction(PlaylistUiAction.OnSettingsClick) },
-                        modifier = Modifier.tvFocusRing()
+                        modifier = Modifier.tvFocusRing(),
                     ) {
                         Icon(
                             imageVector = NextIcons.Settings,
@@ -200,7 +198,7 @@ internal fun PlaylistListScreen(
             title = { Text(text = stringResource(R.string.delete_playlist)) },
             content = {
                 Text(
-                    text = stringResource(R.string.delete_playlist_confirmation, playlist.name)
+                    text = stringResource(R.string.delete_playlist_confirmation, playlist.name),
                 )
             },
             confirmButton = {
@@ -300,7 +298,9 @@ private fun PlaylistRow(
 ) {
     var menuExpanded by rememberSaveable { mutableStateOf(false) }
     val videoCount = pluralStringResource(
-        R.plurals.playlist_video_count, playlist.itemCount, playlist.itemCount,
+        R.plurals.playlist_video_count,
+        playlist.itemCount,
+        playlist.itemCount,
     )
 
     NextSegmentedListItem(

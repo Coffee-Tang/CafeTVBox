@@ -216,7 +216,10 @@ internal fun AddConnectionScreen(
         )
     }
 
-    val onChange: (() -> Unit) -> Unit = { setter -> setter(); onFieldChanged() }
+    val onChange: (() -> Unit) -> Unit = { setter ->
+        setter()
+        onFieldChanged()
+    }
 
     Scaffold(
         topBar = {

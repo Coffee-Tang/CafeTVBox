@@ -411,9 +411,11 @@ class AddConnectionViewModel @AssistedInject constructor(
             "The private key passphrase is incorrect or missing."
         causeMessages().any { message ->
             message.contains("key", ignoreCase = true) &&
-                (message.contains("format", ignoreCase = true) ||
-                    message.contains("malformed", ignoreCase = true) ||
-                    message.contains("invalid pem", ignoreCase = true))
+                (
+                    message.contains("format", ignoreCase = true) ||
+                        message.contains("malformed", ignoreCase = true) ||
+                        message.contains("invalid pem", ignoreCase = true)
+                    )
         } ->
             "The private key format isn't supported or the file is malformed."
         causeMessages().any { message ->

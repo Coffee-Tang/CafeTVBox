@@ -8,29 +8,29 @@ import android.os.Build.VERSION.SDK_INT
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.drawable.toDrawable
+import androidx.core.graphics.get
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.asImage
 import coil3.decode.ContentMetadata
 import coil3.decode.DecodeResult
+import coil3.decode.DecodeUtils
 import coil3.decode.Decoder
 import coil3.decode.ImageSource
 import coil3.disk.DiskCache
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
-import coil3.toAndroidUri
-import okio.FileSystem
-import androidx.core.graphics.get
-import io.github.anilbeesetti.nextlib.mediainfo.MediaThumbnailRetriever
-import kotlin.math.abs
-import coil3.decode.DecodeUtils
 import coil3.request.maxBitmapSize
 import coil3.size.Precision
 import coil3.size.Size
 import coil3.size.pxOrElse
+import coil3.toAndroidUri
 import coil3.util.component1
 import coil3.util.component2
+import io.github.anilbeesetti.nextlib.mediainfo.MediaThumbnailRetriever
+import kotlin.math.abs
 import kotlin.math.roundToInt
+import okio.FileSystem
 
 class VideoThumbnailDecoder(
     private val source: ImageSource,
@@ -66,7 +66,7 @@ class VideoThumbnailDecoder(
 
             // Cache is sufficient only if requested size <= cached size (or size is unspecified)
             val cacheIsSufficient = (requestedWidth == 0 || requestedWidth <= cachedWidth) &&
-                    (requestedHeight == 0 || requestedHeight <= cachedHeight)
+                (requestedHeight == 0 || requestedHeight <= cachedHeight)
 
             if (cacheIsSufficient) {
                 val dstSize = computeDstSize(cachedWidth, cachedHeight)
@@ -187,12 +187,10 @@ class VideoThumbnailDecoder(
         }
     }
 
-    private fun readFromDiskCache(): DiskCache.Snapshot? {
-        return if (options.diskCachePolicy.readEnabled) {
-            diskCache.value?.openSnapshot(diskCacheKey)
-        } else {
-            null
-        }
+    private fun readFromDiskCache(): DiskCache.Snapshot? = if (options.diskCachePolicy.readEnabled) {
+        diskCache.value?.openSnapshot(diskCacheKey)
+    } else {
+        null
     }
 
     private fun writeToDiskCache(inBitmap: Bitmap) {
@@ -280,9 +278,7 @@ class VideoThumbnailDecoder(
             )
         }
 
-        private fun isApplicable(mimeType: String?): Boolean {
-            return mimeType != null && mimeType.startsWith("video/")
-        }
+        private fun isApplicable(mimeType: String?): Boolean = mimeType != null && mimeType.startsWith("video/")
     }
 }
 
@@ -358,8 +354,8 @@ private fun isSolidColor(bitmap: Bitmap, threshold: Float = 0.7f): Boolean {
         val b = color and 0xFF
 
         abs(r - referenceR) <= tolerance &&
-                abs(g - referenceG) <= tolerance &&
-                abs(b - referenceB) <= tolerance
+            abs(g - referenceG) <= tolerance &&
+            abs(b - referenceB) <= tolerance
     }
 
     val similarityRatio = similarCount.toFloat() / sampledColors.size

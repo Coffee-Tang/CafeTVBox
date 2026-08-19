@@ -22,14 +22,12 @@ class LocalSystemService @Inject constructor(
         pickDocumentTreeLauncher = activity.registerForSuspendActivityResult(ActivityResultContracts.OpenDocumentTree())
     }
 
-    override suspend fun pickFolder(): Uri? {
-        return pickDocumentTreeLauncher?.launch(null)?.also { uri ->
-            runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-                )
-            }
+    override suspend fun pickFolder(): Uri? = pickDocumentTreeLauncher?.launch(null)?.also { uri ->
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
         }
     }
 

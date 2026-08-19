@@ -184,9 +184,7 @@ class VolumeState(
         }
     }
 
-    private fun calculateVolumePercentage(): Int {
-        return (currentVolume.toFloat() / systemMaxVolume * MAX_VOLUME_PERCENTAGE_NORMAL).toInt()
-    }
+    private fun calculateVolumePercentage(): Int = (currentVolume.toFloat() / systemMaxVolume * MAX_VOLUME_PERCENTAGE_NORMAL).toInt()
 
     private val AudioManager.currentStreamVolume: Int
         get() = getStreamVolume(AudioManager.STREAM_MUSIC)
@@ -194,10 +192,10 @@ class VolumeState(
     private val AudioManager.isHeadsetOn: Boolean
         get() = getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { device ->
             device.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
-                    device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
-                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
-                    device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
-                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && device.type == AudioDeviceInfo.TYPE_USB_HEADSET)
+                device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                device.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+                device.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && device.type == AudioDeviceInfo.TYPE_USB_HEADSET)
         }
 
     companion object {

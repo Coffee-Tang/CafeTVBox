@@ -94,9 +94,7 @@ class LocalMediaOperationsService @Inject constructor(
         activity.startActivity(intent)
     }
 
-    override suspend fun moveMedia(targets: Map<Uri, File>): Map<Uri, File?> {
-        return moveMedia(targets, onMoveCommitted = null)
-    }
+    override suspend fun moveMedia(targets: Map<Uri, File>): Map<Uri, File?> = moveMedia(targets, onMoveCommitted = null)
 
     /**
      * The internal callback is a deterministic synchronization seam for commit-boundary tests.
@@ -409,11 +407,9 @@ class LocalMediaOperationsService @Inject constructor(
         )?.use { cursor -> cursor.moveToFirst() } == true
     }.getOrDefault(false)
 
-    private suspend fun deleteMediaBelowR(uris: List<Uri>): Boolean {
-        return uris.map { uri ->
-            contentResolver.deleteMedia(uri)
-        }.all { it }
-    }
+    private suspend fun deleteMediaBelowR(uris: List<Uri>): Boolean = uris.map { uri ->
+        contentResolver.deleteMedia(uri)
+    }.all { it }
 
     @RequiresApi(Build.VERSION_CODES.R)
     private suspend fun renameMediaR(uri: Uri, to: String): Boolean = suspendCancellableCoroutine { continuation ->
@@ -436,22 +432,20 @@ class LocalMediaOperationsService @Inject constructor(
         continuation.invokeOnCancellation { scope.cancel() }
     }
 
-    private suspend fun renameMediaBelowR(uri: Uri, to: String): Boolean {
-        return runCatching {
-            val oldFile = context.getPath(uri)?.let { File(it) } ?: throw Error()
-            val newFile = File(oldFile.parentFile, to)
-            oldFile.renameTo(newFile).also { success ->
-                if (success) {
-                    contentResolver.updateMedia(
-                        uri = uri,
-                        contentValues = ContentValues().apply {
-                            put(MediaStore.Files.FileColumns.DISPLAY_NAME, to)
-                            put(MediaStore.Files.FileColumns.TITLE, to)
-                            put(MediaStore.Files.FileColumns.DATA, newFile.path)
-                        },
-                    )
-                }
+    private suspend fun renameMediaBelowR(uri: Uri, to: String): Boolean = runCatching {
+        val oldFile = context.getPath(uri)?.let { File(it) } ?: throw Error()
+        val newFile = File(oldFile.parentFile, to)
+        oldFile.renameTo(newFile).also { success ->
+            if (success) {
+                contentResolver.updateMedia(
+                    uri = uri,
+                    contentValues = ContentValues().apply {
+                        put(MediaStore.Files.FileColumns.DISPLAY_NAME, to)
+                        put(MediaStore.Files.FileColumns.TITLE, to)
+                        put(MediaStore.Files.FileColumns.DATA, newFile.path)
+                    },
+                )
             }
-        }.getOrNull() ?: false
-    }
+        }
+    }.getOrNull() ?: false
 }

@@ -190,7 +190,7 @@ fun NextNavigationRail(state: TopLevelNavState) {
                                 MaterialTheme.colorScheme.secondaryContainer
                             } else {
                                 Color.Transparent
-                            }
+                            },
                         )
                         .padding(16.dp),
                     contentAlignment = Alignment.Center,
@@ -199,7 +199,7 @@ fun NextNavigationRail(state: TopLevelNavState) {
                     Icon(
                         imageVector = dest.icon,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }

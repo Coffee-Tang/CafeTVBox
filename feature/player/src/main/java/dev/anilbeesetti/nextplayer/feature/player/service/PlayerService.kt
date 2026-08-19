@@ -31,7 +31,6 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import coil3.ImageLoader
-import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
@@ -298,7 +297,7 @@ class PlayerService : MediaSessionService() {
             // Update the media metadata duration so that it will be used later in position discontinuity handling
             player.replaceMediaItem(
                 player.currentMediaItemIndex,
-                currentMediaItem.copy(durationMs = player.duration.coerceAtLeast(0))
+                currentMediaItem.copy(durationMs = player.duration.coerceAtLeast(0)),
             )
         }
 
@@ -708,7 +707,7 @@ class PlayerService : MediaSessionService() {
             }
         }.awaitAll()
     }
-    
+
     private fun getDefaultArtworkUri(): Uri = Uri.Builder().apply {
         val defaultArtwork = R.drawable.artwork_default
         scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)

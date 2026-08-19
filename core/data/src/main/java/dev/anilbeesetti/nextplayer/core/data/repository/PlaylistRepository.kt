@@ -23,5 +23,4 @@ interface PlaylistRepository {
     suspend fun replaceOrder(playlistId: Long, orderedUris: List<String>)
 
     suspend fun markVideoPlayed(playlistId: Long, videoUri: String)
-
 }

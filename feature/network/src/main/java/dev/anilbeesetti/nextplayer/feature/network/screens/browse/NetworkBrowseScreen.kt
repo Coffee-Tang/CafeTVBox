@@ -1,6 +1,5 @@
 package dev.anilbeesetti.nextplayer.feature.network.screens.browse
 
-import android.net.Uri
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

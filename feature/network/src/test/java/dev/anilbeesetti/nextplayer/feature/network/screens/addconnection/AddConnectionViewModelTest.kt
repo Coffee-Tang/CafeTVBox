@@ -1,7 +1,7 @@
 package dev.anilbeesetti.nextplayer.feature.network.screens.addconnection
 
-import android.net.Uri
 import android.net.TestUri
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore

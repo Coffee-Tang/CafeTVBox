@@ -9,12 +9,12 @@ import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
 import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.Sort
 import dev.anilbeesetti.nextplayer.core.model.Video
+import java.io.File
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
-import java.io.File
-import javax.inject.Inject
 
 /**
  * Produces the hierarchical (tree) view of media for a folder.
@@ -30,21 +30,19 @@ class GetFolderTreeMediaUseCase @Inject constructor(
     @Dispatcher(NextDispatchers.Default) private val defaultDispatcher: CoroutineDispatcher,
 ) {
 
-    operator fun invoke(folderPath: String? = null): Flow<MediaHolder> {
-        return combine(
-            mediaRepository.observeVideos(folderPath),
-            preferencesRepository.applicationPreferences,
-        ) { videos, preferences ->
-            val included = videos.filterNot { it.parentPath in preferences.excludeFolders }
-            val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)
+    operator fun invoke(folderPath: String? = null): Flow<MediaHolder> = combine(
+        mediaRepository.observeVideos(folderPath),
+        preferencesRepository.applicationPreferences,
+    ) { videos, preferences ->
+        val included = videos.filterNot { it.parentPath in preferences.excludeFolders }
+        val sort = Sort(by = preferences.sortBy, order = preferences.sortOrder)
 
-            if (folderPath != null) {
-                mediaUnder(folderPath, included, preferences.excludeFolders, sort)
-            } else {
-                topLevelMedia(included, preferences.excludeFolders, sort)
-            }
-        }.flowOn(defaultDispatcher)
-    }
+        if (folderPath != null) {
+            mediaUnder(folderPath, included, preferences.excludeFolders, sort)
+        } else {
+            topLevelMedia(included, preferences.excludeFolders, sort)
+        }
+    }.flowOn(defaultDispatcher)
 
     /**
      * The top level: one folder per storage volume that contains videos, or — when only a single

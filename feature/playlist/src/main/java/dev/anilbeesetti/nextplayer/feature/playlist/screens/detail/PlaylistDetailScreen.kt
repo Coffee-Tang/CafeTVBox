@@ -453,7 +453,6 @@ private fun PlaylistDetailContent(
             }
         }
     }
-
 }
 
 @Composable

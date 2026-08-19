@@ -18,8 +18,8 @@ import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.mediaPickerEnt
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.navigateToMediaPickerScreen
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.navigateToSearch
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.navigateToVault
-import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.searchEntry
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.navigateToWatchHistory
+import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.searchEntry
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.vaultEntry
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.watchHistoryEntry
 import dev.anilbeesetti.nextplayer.settings.navigation.navigateToSettings

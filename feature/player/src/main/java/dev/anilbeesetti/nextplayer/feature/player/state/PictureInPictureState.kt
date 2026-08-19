@@ -254,20 +254,18 @@ class PictureInPictureState(
         title: String,
         @DrawableRes icon: Int,
         actionCode: Int,
-    ): RemoteAction {
-        return RemoteAction(
-            Icon.createWithResource(context, icon),
-            title,
-            title,
-            PendingIntent.getBroadcast(
-                context,
-                actionCode,
-                Intent(PIP_INTENT_ACTION).apply {
-                    putExtra(PIP_INTENT_ACTION_CODE, actionCode)
-                    setPackage(context.packageName)
-                },
-                PendingIntent.FLAG_IMMUTABLE,
-            ),
-        )
-    }
+    ): RemoteAction = RemoteAction(
+        Icon.createWithResource(context, icon),
+        title,
+        title,
+        PendingIntent.getBroadcast(
+            context,
+            actionCode,
+            Intent(PIP_INTENT_ACTION).apply {
+                putExtra(PIP_INTENT_ACTION_CODE, actionCode)
+                setPackage(context.packageName)
+            },
+            PendingIntent.FLAG_IMMUTABLE,
+        ),
+    )
 }

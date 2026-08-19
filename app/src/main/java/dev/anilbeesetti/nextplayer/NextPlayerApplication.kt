@@ -5,8 +5,8 @@ import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import dagger.hilt.android.HiltAndroidApp
-import dev.anilbeesetti.nextplayer.core.common.di.ApplicationScope
 import dev.anilbeesetti.nextplayer.core.common.Logger
+import dev.anilbeesetti.nextplayer.core.common.di.ApplicationScope
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
 import dev.anilbeesetti.nextplayer.core.media.network.keys.SshKeyStore
@@ -17,7 +17,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @HiltAndroidApp
-class NextPlayerApplication : Application(), SingletonImageLoader.Factory {
+class NextPlayerApplication :
+    Application(),
+    SingletonImageLoader.Factory {
 
     @Inject
     lateinit var preferencesRepository: PreferencesRepository

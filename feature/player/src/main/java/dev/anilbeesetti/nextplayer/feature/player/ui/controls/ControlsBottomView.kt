@@ -100,7 +100,7 @@ fun ControlsBottomView(
             .padding(horizontal = 8.dp)
             .padding(top = 16.dp)
             .padding(bottom = 16.dp.takeIf { systemBarsPadding.calculateBottomPadding() == 0.dp } ?: 0.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 8.dp),
@@ -398,17 +398,17 @@ private fun SimpleSlider(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(MaterialTheme.shapes.extraSmall)
-                    .background(Color.White.copy(0.5f))
+                    .background(Color.White.copy(0.5f)),
             ) {
                 if (valueRange.endInclusive > 0f) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(value / valueRange.endInclusive)
                             .height(4.dp)
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(MaterialTheme.colorScheme.primary),
                     )
                 }
             }
-        }
+        },
     )
 }

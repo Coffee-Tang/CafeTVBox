@@ -89,10 +89,10 @@ import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 import dev.anilbeesetti.nextplayer.core.ui.extensions.copy
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaInfoDialog
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.VideoItem
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.PinDotsIndicator
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.PinKeypad
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.VaultProgressDialog
-import dev.anilbeesetti.nextplayer.feature.videopicker.composables.VideoItem
 import dev.anilbeesetti.nextplayer.feature.videopicker.state.SelectionItem
 import dev.anilbeesetti.nextplayer.feature.videopicker.state.rememberSelectionManager
 
@@ -532,7 +532,7 @@ private fun VaultGalleryScreen(
                 uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize().padding(updatedPadding),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator()
                     }
@@ -568,7 +568,8 @@ private fun VaultGalleryScreen(
                                     .thenIf(isTv && index == 0) { focusRequester(firstItemRequester) }
                                     // Down from the last item reaches the selection action bar.
                                     .thenIf(
-                                        isTv && selectionManager.isInSelectionMode &&
+                                        isTv &&
+                                            selectionManager.isInSelectionMode &&
                                             index == uiState.hiddenVideos.lastIndex,
                                     ) {
                                         focusProperties { down = firstActionFocusRequester }

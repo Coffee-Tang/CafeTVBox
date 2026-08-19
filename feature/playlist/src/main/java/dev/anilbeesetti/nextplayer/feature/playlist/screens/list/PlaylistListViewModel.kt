@@ -14,13 +14,10 @@ import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.base.ActionState
 import dev.anilbeesetti.nextplayer.core.ui.base.DataState
 import dev.anilbeesetti.nextplayer.core.ui.base.MviViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -146,9 +143,9 @@ class PlaylistListViewModel @AssistedInject constructor(
                         saveActionState = ActionState.Failed(
                             value = Error(
                                 systemService.getString(R.string.playlist_save_failed),
-                                error
-                            )
-                        )
+                                error,
+                            ),
+                        ),
                     )
                 }
             }
@@ -168,7 +165,7 @@ sealed interface PlaylistUiAction {
     data object OnSettingsClick : PlaylistUiAction
     data class OnPlaylistClick(val playlist: PlaylistSummary) : PlaylistUiAction
     data object ShowCreateDialog : PlaylistUiAction
-    data object DismissCreateDialog: PlaylistUiAction
+    data object DismissCreateDialog : PlaylistUiAction
     data class ShowRenameDialogFor(val playlist: PlaylistSummary) : PlaylistUiAction
     data object DismissRenameDialog : PlaylistUiAction
     data class ShowDeleteDialogFor(val playlist: PlaylistSummary) : PlaylistUiAction

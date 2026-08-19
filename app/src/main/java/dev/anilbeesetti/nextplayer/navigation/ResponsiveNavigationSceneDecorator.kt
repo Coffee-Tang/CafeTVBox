@@ -69,7 +69,6 @@ class ResponsiveNavigationScene<T : Any>(
                 else -> NavigationSuiteType.NavigationBar
             }
 
-
             NavigationSuiteScaffoldLayout(
                 layoutType = navLayoutType,
                 navigationSuite = {
@@ -91,9 +90,9 @@ class ResponsiveNavigationScene<T : Any>(
                                 NavigationSuiteType.NavigationBar -> WindowInsetsSides.Bottom
                                 NavigationSuiteType.NavigationRail -> WindowInsetsSides.Start
                                 else -> WindowInsetsSides.Bottom
-                            }
-                        )
-                    )
+                            },
+                        ),
+                    ),
                 ) {
                     scene.content()
                 }

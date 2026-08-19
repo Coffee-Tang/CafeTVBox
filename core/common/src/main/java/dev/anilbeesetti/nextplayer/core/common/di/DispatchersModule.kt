@@ -9,9 +9,9 @@ import dev.anilbeesetti.nextplayer.core.common.Dispatcher
 import dev.anilbeesetti.nextplayer.core.common.NextDispatchers
 import dev.anilbeesetti.nextplayer.core.common.service.system.LocalSystemService
 import dev.anilbeesetti.nextplayer.core.common.service.system.SystemService
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)

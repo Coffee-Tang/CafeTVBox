@@ -66,6 +66,7 @@ interface MediaRepository {
     suspend fun getVideoByUri(uri: String): Video?
     suspend fun getVideoState(uri: String): VideoState?
     suspend fun getMediaInfo(uri: String): MediaInfo?
+
     /**
      * Records where playback reached, and what playback history shows for the item.
      *

@@ -27,7 +27,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.onFirstVisible
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -41,8 +40,6 @@ import dev.anilbeesetti.nextplayer.core.model.Folder
 import dev.anilbeesetti.nextplayer.core.model.MediaLayoutMode
 import dev.anilbeesetti.nextplayer.core.model.MediaViewMode
 import dev.anilbeesetti.nextplayer.core.model.Video
-import dev.anilbeesetti.nextplayer.core.model.findClosestFolder
-import dev.anilbeesetti.nextplayer.core.model.recentPlayed
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.components.ListSectionTitle
 import dev.anilbeesetti.nextplayer.core.ui.components.requestFocusUntilLanded
@@ -86,10 +83,11 @@ fun MediaView(
         LaunchedEffect(mediaHolder.folders.size, mediaHolder.videos.size) {
             if (hasRequestedInitialFocus) return@LaunchedEffect
             if (mediaHolder.folders.isEmpty() && mediaHolder.videos.isEmpty()) return@LaunchedEffect
-            val hasRestore = restoredFocusKey != null && (
-                mediaHolder.folders.any { it.path == restoredFocusKey } ||
-                    mediaHolder.videos.any { it.uriString == restoredFocusKey }
-                )
+            val hasRestore = restoredFocusKey != null &&
+                (
+                    mediaHolder.folders.any { it.path == restoredFocusKey } ||
+                        mediaHolder.videos.any { it.uriString == restoredFocusKey }
+                    )
             // Prefer restoring the previously focused item; fall back to the first item.
             val targets = if (hasRestore) listOf(restoreRequester, firstItemRequester) else listOf(firstItemRequester)
             hasRequestedInitialFocus = targets.any { it.requestFocusUntilLanded() }
@@ -234,10 +232,6 @@ fun MediaView(
     }
 }
 
-fun lcm(a: Int, b: Int): Int {
-    return abs(a * b) / gcd(a, b)
-}
+fun lcm(a: Int, b: Int): Int = abs(a * b) / gcd(a, b)
 
-fun gcd(a: Int, b: Int): Int {
-    return if (b == 0) a else gcd(b, a % b)
-}
+fun gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
