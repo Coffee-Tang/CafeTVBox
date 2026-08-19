@@ -113,6 +113,16 @@ class PlayerService : MediaSessionService() {
      */
     private var wasCurrentMediaItemLive = false
 
+    /**
+     * The subtitle track chosen by hand while playing the current queue, or -1 for none.
+     *
+     * Each episode of a series is a file of its own, and so has a stored selection of its own,
+     * which the first play of it does not have yet. Carrying the choice over means turning
+     * subtitles on, or off, once for the queue rather than once for every episode in it.
+     */
+    @Volatile
+    private var chosenSubtitleTrackIndex: Int? = null
+
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var currentVolumeGain: Int = 0
 
@@ -184,11 +194,13 @@ class PlayerService : MediaSessionService() {
                 isMediaItemReady = true
 
                 if (!playerPreferences.rememberSelections) return
-                mediaSession?.player?.mediaMetadata?.audioTrackIndex?.let {
-                    mediaSession?.player?.switchTrack(C.TRACK_TYPE_AUDIO, it)
+                val player = mediaSession?.player ?: return
+                player.mediaMetadata.audioTrackIndex?.let {
+                    player.switchTrack(C.TRACK_TYPE_AUDIO, it)
                 }
-                mediaSession?.player?.mediaMetadata?.subtitleTrackIndex?.let {
-                    mediaSession?.player?.switchTrack(C.TRACK_TYPE_TEXT, it)
+                val subtitleTrackIndex = player.mediaMetadata.subtitleTrackIndex ?: chosenSubtitleTrackIndex
+                subtitleTrackIndex?.let {
+                    player.switchTrack(C.TRACK_TYPE_TEXT, it)
                 }
             }
         }
@@ -211,6 +223,7 @@ class PlayerService : MediaSessionService() {
             }
 
             if (subtitleTrackIndex != null) {
+                chosenSubtitleTrackIndex = subtitleTrackIndex
                 serviceScope.launch {
                     mediaRepository.updateMediumSubtitleTrack(
                         uri = currentMediaItem.mediaId,
@@ -365,6 +378,7 @@ class PlayerService : MediaSessionService() {
             startIndex: Int,
             startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> = serviceScope.future(Dispatchers.Default) {
+            chosenSubtitleTrackIndex = null
             val updatedMediaItems = updatedMediaItemsWithMetadata(mediaItems)
             return@future MediaSession.MediaItemsWithStartPosition(updatedMediaItems, startIndex, startPositionMs)
         }
