@@ -5,6 +5,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
 import dev.anilbeesetti.nextplayer.feature.videopicker.screens.mediapicker.MediaPickerRoute
 import dev.anilbeesetti.nextplayer.feature.videopicker.screens.mediapicker.MediaPickerViewModel
 import kotlinx.serialization.Serializable
@@ -22,7 +23,7 @@ fun EntryProviderScope<NavKey>.mediaPickerEntry(
     onNavigateUp: () -> Unit,
     onPlayVideo: (uri: Uri) -> Unit,
     onPlayVideos: (uris: List<Uri>) -> Unit,
-    onResumeWatching: (uri: Uri, mediaKey: String, title: String) -> Unit,
+    onResumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
     onWatchHistoryClick: () -> Unit,
     onFolderClick: (folderPath: String) -> Unit,
     onSettingsClick: () -> Unit,

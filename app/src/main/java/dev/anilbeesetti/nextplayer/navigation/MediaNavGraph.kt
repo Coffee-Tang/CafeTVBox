@@ -7,6 +7,7 @@ import androidx.core.net.toUri
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
 import dev.anilbeesetti.nextplayer.core.media.live.LiveMediaKey
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
 import dev.anilbeesetti.nextplayer.core.model.channelKey
@@ -34,8 +35,8 @@ fun EntryProviderScope<NavKey>.mediaNavGraph(
         onNavigateUp = { backStack.removeLastIfNotRoot() },
         onPlayVideo = { uri -> context.startPlayback(uri) },
         onPlayVideos = { uris -> context.startPlayback(uris) },
-        onResumeWatching = { uri, mediaKey, title ->
-            context.startPlayback(uri, mediaKey = mediaKey, title = title)
+        onResumeWatching = { media, mediaKey, title ->
+            context.startPlayback(media, mediaKey = mediaKey, title = title)
         },
         onWatchHistoryClick = backStack::navigateToWatchHistory,
         onFolderClick = backStack::navigateToMediaPickerScreen,
@@ -52,8 +53,8 @@ fun EntryProviderScope<NavKey>.mediaNavGraph(
 
     watchHistoryEntry(
         onNavigateUp = { backStack.removeLastIfNotRoot() },
-        onResumeWatching = { uri, mediaKey, title ->
-            context.startPlayback(uri, mediaKey = mediaKey, title = title)
+        onResumeWatching = { media, mediaKey, title ->
+            context.startPlayback(media, mediaKey = mediaKey, title = title)
         },
     )
 
@@ -63,6 +64,28 @@ fun EntryProviderScope<NavKey>.mediaNavGraph(
         // playback time for both PlayerActivity and the (separate) PlayerService component.
         onPlayVideo = { uri -> context.startPlayback(uri, grantReadPermission = true) },
         onPlayVideos = { uris -> context.startPlayback(uris, grantReadPermission = true) },
+    )
+}
+
+/**
+ * Reopens something the watch history holds.
+ *
+ * A station is handed every line it is carried on, for the same reason as when it is picked from the
+ * channel list: the line playback starts on may be dead, and moving on to the next one is only
+ * possible if the rest came along.
+ */
+internal fun Context.startPlayback(
+    media: PlayableMedia,
+    mediaKey: String? = null,
+    title: String? = null,
+) {
+    startPlayback(
+        uri = media.uri,
+        playlist = null,
+        mediaKey = mediaKey,
+        title = title,
+        grantReadPermission = false,
+        lines = media.lines,
     )
 }
 

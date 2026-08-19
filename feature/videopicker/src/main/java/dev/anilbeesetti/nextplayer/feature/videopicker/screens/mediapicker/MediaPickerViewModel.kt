@@ -17,6 +17,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.anilbeesetti.nextplayer.core.common.extensions.prettyName
 import dev.anilbeesetti.nextplayer.core.common.service.system.SystemService
 import dev.anilbeesetti.nextplayer.core.common.storagePermission
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
 import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMediaResolver
 import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PlaylistRepository
@@ -78,7 +79,7 @@ class MediaPickerViewModel @AssistedInject constructor(
     data class Output(
         val navigateUp: () -> Unit,
         val playVideo: (Uri) -> Unit,
-        val resumeWatching: (uri: Uri, mediaKey: String, title: String) -> Unit,
+        val resumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
         val openWatchHistory: () -> Unit,
         val playVideos: (List<Uri>) -> Unit,
         val openFolder: (String) -> Unit,
@@ -205,15 +206,15 @@ class MediaPickerViewModel @AssistedInject constructor(
      */
     private fun resumeWatching(medium: RecentMedium) {
         viewModelScope.launch {
-            val uri = playableMediaResolver.resolve(medium.mediaKey)
-            if (uri == null) {
+            val playable = playableMediaResolver.resolve(medium.mediaKey)
+            if (playable == null) {
                 systemService.showToast(
                     text = systemService.getString(R.string.error_playback_source_unavailable),
                     duration = Toast.LENGTH_SHORT,
                 )
                 return@launch
             }
-            output.resumeWatching(uri, medium.mediaKey, medium.title)
+            output.resumeWatching(playable, medium.mediaKey, medium.title)
         }
     }
 

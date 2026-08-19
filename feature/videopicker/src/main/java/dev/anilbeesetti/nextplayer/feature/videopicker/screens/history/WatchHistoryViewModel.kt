@@ -1,6 +1,5 @@
 package dev.anilbeesetti.nextplayer.feature.videopicker.screens.history
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
@@ -10,6 +9,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.common.service.system.SystemService
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
 import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMediaResolver
 import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.model.RecentMedium
@@ -29,7 +29,7 @@ class WatchHistoryViewModel @AssistedInject constructor(
 
     data class Output(
         val navigateUp: () -> Unit,
-        val resumeWatching: (uri: Uri, mediaKey: String, title: String) -> Unit,
+        val resumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
     )
 
     @AssistedFactory
@@ -56,15 +56,15 @@ class WatchHistoryViewModel @AssistedInject constructor(
      */
     fun resume(medium: RecentMedium) {
         viewModelScope.launch {
-            val uri = playableMediaResolver.resolve(medium.mediaKey)
-            if (uri == null) {
+            val playable = playableMediaResolver.resolve(medium.mediaKey)
+            if (playable == null) {
                 systemService.showToast(
                     text = systemService.getString(R.string.error_playback_source_unavailable),
                     duration = Toast.LENGTH_SHORT,
                 )
                 return@launch
             }
-            output.resumeWatching(uri, medium.mediaKey, medium.title)
+            output.resumeWatching(playable, medium.mediaKey, medium.title)
         }
     }
 

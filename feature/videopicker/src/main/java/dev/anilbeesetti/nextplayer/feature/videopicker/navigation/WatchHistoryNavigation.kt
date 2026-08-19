@@ -1,10 +1,10 @@
 package dev.anilbeesetti.nextplayer.feature.videopicker.navigation
 
-import android.net.Uri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
 import dev.anilbeesetti.nextplayer.feature.videopicker.screens.history.WatchHistoryScreenRoute
 import dev.anilbeesetti.nextplayer.feature.videopicker.screens.history.WatchHistoryViewModel
 import kotlinx.serialization.Serializable
@@ -18,7 +18,7 @@ fun NavBackStack<NavKey>.navigateToWatchHistory() {
 
 fun EntryProviderScope<NavKey>.watchHistoryEntry(
     onNavigateUp: () -> Unit,
-    onResumeWatching: (uri: Uri, mediaKey: String, title: String) -> Unit,
+    onResumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
 ) {
     entry<WatchHistoryRoute> {
         WatchHistoryScreenRoute(

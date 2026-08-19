@@ -4,6 +4,9 @@ import android.app.Activity
 import android.net.Uri
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
+import dev.anilbeesetti.nextplayer.core.media.live.LiveMediaKey
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_LIVE_LINES
 import dev.anilbeesetti.nextplayer.feature.player.utils.PlayerApi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,6 +52,33 @@ class MediaNavGraphTest {
         context.startPlayback(emptyList())
 
         assertNull(shadowOf(context).nextStartedActivity)
+    }
+
+    @Test
+    fun `resuming a station hands over every line it is carried on`() {
+        val context = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val first = "http://a/cctv1.m3u8"
+        val second = "http://b/cctv1.m3u8"
+
+        context.startPlayback(
+            media = PlayableMedia(first.toUri(), listOf(first, second)),
+            mediaKey = LiveMediaKey("CCTV1").toString(),
+            title = "CCTV-1综合",
+        )
+
+        val intent = shadowOf(context).nextStartedActivity
+        assertEquals(first.toUri(), intent.data)
+        assertEquals(arrayListOf(first, second), intent.getStringArrayListExtra(EXTRA_LIVE_LINES))
+    }
+
+    @Test
+    fun `resuming something reached one way only leaves no lines to fall back on`() {
+        val context = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val uri = "content://media/external/video/media/1821".toUri()
+
+        context.startPlayback(media = PlayableMedia(uri), title = "Holiday")
+
+        assertFalse(shadowOf(context).nextStartedActivity.hasExtra(EXTRA_LIVE_LINES))
     }
 
     @Test
