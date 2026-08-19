@@ -28,22 +28,27 @@ class LocalNetworkConnectionRepository @Inject constructor(
 
     override suspend fun delete(id: Long) = networkConnectionDao.deleteById(id)
 
-    private fun NetworkConnectionEntity.toModel() = NetworkConnection(
-        id = id,
-        name = name,
-        protocol = runCatching { NetworkProtocol.valueOf(protocol) }.getOrDefault(NetworkProtocol.SMB),
-        host = host,
-        port = port,
-        path = path,
-        username = username,
-        password = credentialCipher.decrypt(password),
-        useHttps = useHttps,
-        authentication = runCatching { NetworkAuthentication.valueOf(authentication) }
-            .getOrDefault(NetworkAuthentication.PASSWORD),
-        privateKeyFileName = privateKeyFileName,
-        privateKeyPassphrase = credentialCipher.decrypt(privateKeyPassphrase),
-        hostKeyFingerprint = hostKeyFingerprint,
-    )
+    private fun NetworkConnectionEntity.toModel(): NetworkConnection {
+        val readPassword = credentialCipher.decrypt(password)
+        val readPassphrase = credentialCipher.decrypt(privateKeyPassphrase)
+        return NetworkConnection(
+            id = id,
+            name = name,
+            protocol = runCatching { NetworkProtocol.valueOf(protocol) }.getOrDefault(NetworkProtocol.SMB),
+            host = host,
+            port = port,
+            path = path,
+            username = username,
+            password = readPassword.orEmpty(),
+            useHttps = useHttps,
+            authentication = runCatching { NetworkAuthentication.valueOf(authentication) }
+                .getOrDefault(NetworkAuthentication.PASSWORD),
+            privateKeyFileName = privateKeyFileName,
+            privateKeyPassphrase = readPassphrase.orEmpty(),
+            hostKeyFingerprint = hostKeyFingerprint,
+            credentialsUnreadable = readPassword == null || readPassphrase == null,
+        )
+    }
 
     private fun NetworkConnection.toEntity() = NetworkConnectionEntity(
         id = id,

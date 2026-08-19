@@ -381,6 +381,9 @@
     <string name="empty_folder">資料夾是空的</string>
     <string name="failed_to_load_folder">無法載入這個檔案位置</string>
     <string name="retry">重試</string>
+    <string name="credentials_unreadable">這台裝置已經讀不出儲存的密碼，請重新輸入以恢復連線。</string>
+    <string name="credentials_rejected">伺服器拒絕了儲存的密碼，請重新輸入以恢復連線。</string>
+    <string name="reenter_password">重新輸入密碼</string>
     <string name="edit">編輯</string>
     <string name="share_name_optional">共享名稱（選填）</string>
     <string name="share_name_optional_description">留空則列出伺服器上的所有共享。</string>

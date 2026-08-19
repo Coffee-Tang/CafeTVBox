@@ -1,9 +1,11 @@
 package dev.anilbeesetti.nextplayer.core.media.network.clients
 
 import com.hierynomus.msdtyp.AccessMask
+import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb2.SMB2CreateDisposition
 import com.hierynomus.mssmb2.SMB2Dialect
 import com.hierynomus.mssmb2.SMB2ShareAccess
+import com.hierynomus.mssmb2.SMBApiException
 import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
@@ -12,6 +14,7 @@ import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import com.rapid7.client.dcerpc.mssrvs.ServerService
 import com.rapid7.client.dcerpc.transport.SMBTransportFactories
+import dev.anilbeesetti.nextplayer.core.media.network.CredentialsRejected
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
 import dev.anilbeesetti.nextplayer.core.model.NetworkFile
@@ -72,7 +75,11 @@ class SmbClient(private val connection: NetworkConnection) : NetworkClient {
             } else {
                 AuthenticationContext(connection.username, connection.password.toCharArray(), null)
             }
-            val sess = conn.authenticate(authContext)
+            val sess = try {
+                conn.authenticate(authContext)
+            } catch (refused: SMBApiException) {
+                if (refused.status in REFUSED_CREDENTIALS) throw CredentialsRejected(refused) else throw refused
+            }
             if (configuredShare.isEmpty()) {
                 // Verify the server will tell us its shares, since they are the only way in.
                 listShares(sess)
@@ -219,3 +226,11 @@ internal fun smbLocationOf(configuredShare: String, browsePath: String): SmbLoca
  * `STYPE_SPECIAL` (`0x80000000`), so an exact match keeps only ordinary file shares.
  */
 private const val SHARE_TYPE_DISK = 0
+
+/**
+ * Session setup failures that mean the saved credentials themselves are no longer accepted.
+ *
+ * Deliberately narrow: `STATUS_ACCESS_DENIED` and a disabled account are refusals of *this user*
+ * rather than of the password, and entering it again would not help.
+ */
+private val REFUSED_CREDENTIALS = setOf(NtStatus.STATUS_LOGON_FAILURE, NtStatus.STATUS_PASSWORD_EXPIRED)

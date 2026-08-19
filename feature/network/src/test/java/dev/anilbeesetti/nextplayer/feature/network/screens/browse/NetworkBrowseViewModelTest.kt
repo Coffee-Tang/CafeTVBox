@@ -1,6 +1,7 @@
 package dev.anilbeesetti.nextplayer.feature.network.screens.browse
 
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
+import dev.anilbeesetti.nextplayer.core.media.network.CredentialsRejected
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
@@ -9,6 +10,7 @@ import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
 import dev.anilbeesetti.nextplayer.core.model.NetworkFile
 import dev.anilbeesetti.nextplayer.core.model.NetworkProtocol
 import dev.anilbeesetti.nextplayer.feature.network.MainDispatcherRule
+import java.io.IOException
 import java.io.InputStream
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -61,6 +63,37 @@ class NetworkBrowseViewModelTest {
 
             assertEquals("Server unavailable", viewModel.uiState.value.error?.message)
             assertNull(viewModel.uiState.value.error?.hostKeyMismatch)
+            assertNull(viewModel.uiState.value.error?.credentialProblem)
+        }
+
+    @Test
+    fun `a credential the server refuses is not offered as something to retry`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val refused = CredentialsRejected(IllegalStateException("STATUS_LOGON_FAILURE"))
+            val viewModel = viewModel(connectResult = Result.failure(IOException("Connect failed", refused)))
+
+            advanceUntilIdle()
+
+            assertEquals(CredentialProblem.Rejected, viewModel.uiState.value.error?.credentialProblem)
+        }
+
+    @Test
+    fun `a credential this device can no longer read is reported without asking the server`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val client = FakeNetworkClient(Result.success(Unit), files = emptyList())
+            val factory = NetworkClientFactory { client }
+            val viewModel = NetworkBrowseViewModel(
+                connectionId = 7,
+                path = null,
+                repository = FakeRepository(connection().copy(credentialsUnreadable = true)),
+                streamingProxy = NetworkStreamingProxy(factory),
+                clientFactory = factory,
+            )
+
+            advanceUntilIdle()
+
+            assertEquals(CredentialProblem.Unreadable, viewModel.uiState.value.error?.credentialProblem)
+            assertEquals(0, client.connectAttempts)
         }
 
     @Test
@@ -132,9 +165,15 @@ private class FakeNetworkClient(
     private val connectResult: Result<Unit>,
     private val files: List<NetworkFile>? = null,
 ) : NetworkClient {
+    var connectAttempts: Int = 0
+        private set
+
     override val rootPath: String = "/"
 
-    override suspend fun connect(): Result<Unit> = connectResult
+    override suspend fun connect(): Result<Unit> {
+        connectAttempts++
+        return connectResult
+    }
 
     override suspend fun disconnect() = Unit
 

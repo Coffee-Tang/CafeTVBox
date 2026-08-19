@@ -408,6 +408,9 @@
     <string name="empty_folder">This folder is empty</string>
     <string name="failed_to_load_folder">Couldn\'t load this location</string>
     <string name="retry">Retry</string>
+    <string name="credentials_unreadable">This device can no longer read the saved password. Enter it again to reconnect.</string>
+    <string name="credentials_rejected">The server refused the saved password. Enter it again to reconnect.</string>
+    <string name="reenter_password">Enter password again</string>
     <string name="edit">Edit</string>
 
     <!-- Live TV -->

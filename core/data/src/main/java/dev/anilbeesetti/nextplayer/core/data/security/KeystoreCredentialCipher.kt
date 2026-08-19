@@ -3,6 +3,7 @@ package dev.anilbeesetti.nextplayer.core.data.security
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -31,7 +32,7 @@ class KeystoreCredentialCipher @Inject constructor() : CredentialCipher {
         return PREFIX + Base64.encodeToString(combined, Base64.NO_WRAP)
     }
 
-    override fun decrypt(storedValue: String): String {
+    override fun decrypt(storedValue: String): String? {
         if (!storedValue.startsWith(PREFIX)) return storedValue
         return runCatching {
             val combined = Base64.decode(storedValue.removePrefix(PREFIX), Base64.NO_WRAP)
@@ -41,7 +42,11 @@ class KeystoreCredentialCipher @Inject constructor() : CredentialCipher {
                 init(Cipher.DECRYPT_MODE, getOrCreateKey(), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
             }
             String(cipher.doFinal(encrypted), Charsets.UTF_8)
-        }.getOrDefault("")
+        }.onFailure {
+            // Losing the key is indistinguishable from a wrong password once the value is gone,
+            // so say which one happened here or nobody downstream can.
+            Log.w(TAG, "A saved credential can no longer be decrypted; the Keystore key changed", it)
+        }.getOrNull()
     }
 
     private fun getOrCreateKey(): SecretKey {
@@ -62,6 +67,7 @@ class KeystoreCredentialCipher @Inject constructor() : CredentialCipher {
     }
 
     companion object {
+        private const val TAG = "CredentialCipher"
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
         private const val KEY_ALIAS = "nextplayer_network_credentials"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"

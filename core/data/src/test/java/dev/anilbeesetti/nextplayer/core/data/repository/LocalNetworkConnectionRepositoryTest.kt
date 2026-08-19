@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -124,16 +125,95 @@ class LocalNetworkConnectionRepositoryTest {
         assertEquals("", repository.getConnection(id)?.password)
     }
 
+    @Test
+    fun `a password the key can no longer open is reported, not passed off as blank`() = runTest {
+        val id = repository.upsert(
+            NetworkConnection(
+                name = "NAS",
+                protocol = NetworkProtocol.SMB,
+                host = "10.0.2.2",
+                username = "alice",
+                password = "s3cret",
+            ),
+        )
+
+        cipher.keyGeneration++
+
+        val connection = repository.getConnection(id)!!
+        assertEquals("", connection.password)
+        assertTrue(connection.credentialsUnreadable)
+    }
+
+    @Test
+    fun `an unreadable passphrase flags the connection too`() = runTest {
+        val id = repository.upsert(
+            NetworkConnection(
+                name = "SFTP",
+                protocol = NetworkProtocol.SFTP,
+                host = "10.0.2.2",
+                username = "alice",
+                authentication = NetworkAuthentication.SSH_KEY,
+                privateKeyFileName = "id.key",
+                privateKeyPassphrase = "passphrase",
+            ),
+        )
+
+        cipher.keyGeneration++
+
+        val connection = repository.getConnection(id)!!
+        assertEquals("", connection.privateKeyPassphrase)
+        assertTrue(connection.credentialsUnreadable)
+    }
+
+    @Test
+    fun `connections that never had a credential are not flagged`() = runTest {
+        val id = repository.upsert(
+            NetworkConnection(
+                name = "Guest",
+                protocol = NetworkProtocol.SMB,
+                host = "10.0.2.2",
+            ),
+        )
+
+        cipher.keyGeneration++
+
+        assertFalse(repository.getConnection(id)!!.credentialsUnreadable)
+    }
+
+    @Test
+    fun `a readable credential is not flagged`() = runTest {
+        val id = repository.upsert(
+            NetworkConnection(
+                name = "NAS",
+                protocol = NetworkProtocol.SMB,
+                host = "10.0.2.2",
+                username = "alice",
+                password = "s3cret",
+            ),
+        )
+
+        assertFalse(repository.getConnection(id)!!.credentialsUnreadable)
+    }
+
     /**
      * Mirrors the production cipher's contract without the Android Keystore: empty values pass
      * through, encrypted values are prefixed, and legacy (unprefixed) values decrypt unchanged.
+     *
+     * Ciphertext also records which key wrote it, so [keyGeneration] can be bumped to reproduce the
+     * one failure that matters here: a device whose Keystore key is no longer the one that encrypted
+     * what is on disk.
      */
     private class FakeCredentialCipher : CredentialCipher {
-        override fun encrypt(plainText: String): String =
-            if (plainText.isEmpty()) plainText else PREFIX + plainText
+        var keyGeneration: Int = 1
 
-        override fun decrypt(storedValue: String): String =
-            if (storedValue.startsWith(PREFIX)) storedValue.removePrefix(PREFIX) else storedValue
+        override fun encrypt(plainText: String): String =
+            if (plainText.isEmpty()) plainText else "$PREFIX$keyGeneration:$plainText"
+
+        override fun decrypt(storedValue: String): String? {
+            if (!storedValue.startsWith(PREFIX)) return storedValue
+            val body = storedValue.removePrefix(PREFIX)
+            return body.substringAfter(':').takeIf { body.substringBefore(':') == keyGeneration.toString() }
+        }
 
         companion object {
             const val PREFIX = "enc:test:"

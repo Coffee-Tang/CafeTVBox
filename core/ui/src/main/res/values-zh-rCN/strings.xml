@@ -361,6 +361,9 @@
     <string name="edit">编辑</string>
     <string name="retry">重试</string>
     <string name="failed_to_load_folder">无法加载此位置</string>
+    <string name="credentials_unreadable">这台设备已经读不出保存的密码了，请重新输入以恢复连接。</string>
+    <string name="credentials_rejected">服务器拒绝了保存的密码，请重新输入以恢复连接。</string>
+    <string name="reenter_password">重新输入密码</string>
     <string name="empty_folder">此文件夹为空</string>
     <string name="no_connections_description">添加 SMB、FTP 或 WebDAV 连接以浏览和播放来自个人网络的视频</string>
     <string name="no_connections_title">尚无连接</string>

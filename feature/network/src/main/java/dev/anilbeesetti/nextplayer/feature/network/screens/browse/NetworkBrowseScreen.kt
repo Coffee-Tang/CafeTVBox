@@ -59,6 +59,7 @@ fun NetworkBrowseScreenRoute(
     onNavigateUp: () -> Unit,
     onPlayVideos: (request: NetworkPlaybackRequest) -> Unit,
     onNavigateToFolder: (connectionId: Long, path: String) -> Unit,
+    onEditConnection: (connectionId: Long) -> Unit,
     viewModel: NetworkBrowseViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,6 +72,7 @@ fun NetworkBrowseScreenRoute(
         onFolderClick = { file -> onNavigateToFolder(viewModel.connectionId, file.path) },
         onVideoClick = viewModel::playVideo,
         onRetry = viewModel::retry,
+        onEditConnection = { onEditConnection(viewModel.connectionId) },
     )
 }
 
@@ -82,6 +84,7 @@ internal fun NetworkBrowseScreen(
     onFolderClick: (NetworkFile) -> Unit,
     onVideoClick: (NetworkFile) -> Unit,
     onRetry: () -> Unit,
+    onEditConnection: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -119,10 +122,13 @@ internal fun NetworkBrowseScreen(
                     )
                     Spacer(Modifier.size(4.dp))
                     Text(
-                        text = if (error.hostKeyMismatch != null) {
-                            stringResource(R.string.host_key_mismatch)
-                        } else {
-                            error.message ?: stringResource(R.string.connection_failed)
+                        text = when {
+                            error.hostKeyMismatch != null -> stringResource(R.string.host_key_mismatch)
+                            error.credentialProblem == CredentialProblem.Unreadable ->
+                                stringResource(R.string.credentials_unreadable)
+                            error.credentialProblem == CredentialProblem.Rejected ->
+                                stringResource(R.string.credentials_rejected)
+                            else -> error.message ?: stringResource(R.string.connection_failed)
                         },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -157,7 +163,13 @@ internal fun NetworkBrowseScreen(
                         }
                     }
                     Spacer(Modifier.size(16.dp))
-                    Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+                    // Retrying a refused credential just gets it refused again, so the way out is
+                    // the connection's own form.
+                    if (error.credentialProblem != null) {
+                        Button(onClick = onEditConnection) { Text(stringResource(R.string.reenter_password)) }
+                    } else {
+                        Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+                    }
                 }
             }
 

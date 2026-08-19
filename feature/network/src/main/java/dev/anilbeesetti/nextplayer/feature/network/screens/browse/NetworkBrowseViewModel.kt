@@ -9,6 +9,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
+import dev.anilbeesetti.nextplayer.core.media.network.CredentialsRejected
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkMediaKey
@@ -42,7 +43,17 @@ data class NetworkBrowseHostKeyMismatch(
 data class NetworkBrowseError(
     val message: String?,
     val hostKeyMismatch: NetworkBrowseHostKeyMismatch? = null,
+    val credentialProblem: CredentialProblem? = null,
 )
+
+/** A connection failure that only re-entering the credentials can clear. */
+enum class CredentialProblem {
+    /** The saved credential can no longer be decrypted on this device. */
+    Unreadable,
+
+    /** The server refused the saved credential. */
+    Rejected,
+}
 
 /** A network file ready to play: [uri] is the proxy URL, [mediaKey] the identity that outlives it. */
 data class NetworkPlaybackItem(val uri: Uri, val mediaKey: String)
@@ -93,6 +104,16 @@ class NetworkBrowseViewModel @AssistedInject constructor(
                 _uiState.value = NetworkBrowseUiState(
                     isLoading = false,
                     error = NetworkBrowseError("Connection not found"),
+                )
+                return@launch
+            }
+            if (conn.credentialsUnreadable) {
+                // Connecting would send an empty credential, and the server's refusal would read
+                // as "your password is wrong" when the password is fine and our key is not.
+                _uiState.value = NetworkBrowseUiState(
+                    title = title(conn),
+                    isLoading = false,
+                    error = NetworkBrowseError(message = null, credentialProblem = CredentialProblem.Unreadable),
                 )
                 return@launch
             }
@@ -179,9 +200,9 @@ class NetworkBrowseViewModel @AssistedInject constructor(
 }
 
 private fun Throwable.toNetworkBrowseError(): NetworkBrowseError {
-    val mismatch = generateSequence(this) { it.cause }
-        .filterIsInstance<HostKeyMismatch>()
-        .firstOrNull()
+    val causes = generateSequence(this) { it.cause }
+    val mismatch = causes.filterIsInstance<HostKeyMismatch>().firstOrNull()
+    val refused = causes.filterIsInstance<CredentialsRejected>().firstOrNull()
     return NetworkBrowseError(
         message = message,
         hostKeyMismatch = mismatch?.let {
@@ -190,5 +211,6 @@ private fun Throwable.toNetworkBrowseError(): NetworkBrowseError {
                 presentedFingerprint = it.presentedFingerprint,
             )
         },
+        credentialProblem = refused?.let { CredentialProblem.Rejected },
     )
 }

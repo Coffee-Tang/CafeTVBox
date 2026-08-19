@@ -36,5 +36,6 @@ fun EntryProviderScope<NavKey>.networkNavGraph(
             )
         },
         onNavigateToFolder = { id, path -> backStack.navigateToNetworkBrowse(id, path) },
+        onEditConnection = { id -> backStack.navigateToAddConnection(id) },
     )
 }

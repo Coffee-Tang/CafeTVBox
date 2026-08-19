@@ -20,6 +20,9 @@ enum class NetworkAuthentication {
  * [path] is the protocol-specific root: the share name for SMB, or the base directory for FTP,
  * SFTP, and WebDAV. Imported SSH keys remain in app-private storage and are referenced by their
  * generated [privateKeyFileName].
+ *
+ * [credentialsUnreadable] reports on the copy that was read from storage, so it is never set on a
+ * connection being saved.
  */
 data class NetworkConnection(
     val id: Long = 0,
@@ -35,6 +38,12 @@ data class NetworkConnection(
     val privateKeyFileName: String = "",
     val privateKeyPassphrase: String = "",
     val hostKeyFingerprint: String = "",
+    /**
+     * A credential was saved for this connection but can no longer be decrypted, which leaves
+     * [password] and [privateKeyPassphrase] empty. Connecting anyway would authenticate with
+     * nothing and look like the server refusing us, so ask for the credential again instead.
+     */
+    val credentialsUnreadable: Boolean = false,
 ) : Serializable {
 
     val effectivePort: Int get() = port ?: protocol.defaultPort

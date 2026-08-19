@@ -81,12 +81,14 @@ fun EntryProviderScope<NavKey>.networkBrowseEntry(
     onNavigateUp: () -> Unit,
     onPlayVideos: (request: NetworkPlaybackRequest) -> Unit,
     onNavigateToFolder: (connectionId: Long, path: String) -> Unit,
+    onEditConnection: (connectionId: Long) -> Unit,
 ) {
     entry<NetworkBrowseRoute> { key ->
         NetworkBrowseScreenRoute(
             onNavigateUp = onNavigateUp,
             onPlayVideos = onPlayVideos,
             onNavigateToFolder = onNavigateToFolder,
+            onEditConnection = onEditConnection,
             viewModel = hiltViewModel<NetworkBrowseViewModel, NetworkBrowseViewModel.Factory>(
                 creationCallback = { factory -> factory.create(key.connectionId, key.path) },
             ),
