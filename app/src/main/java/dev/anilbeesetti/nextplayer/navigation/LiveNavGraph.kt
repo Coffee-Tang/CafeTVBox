@@ -7,8 +7,10 @@ import androidx.navigation3.runtime.NavKey
 import dev.anilbeesetti.nextplayer.feature.live.navigation.addLiveSourceEntry
 import dev.anilbeesetti.nextplayer.feature.live.navigation.liveChannelsEntry
 import dev.anilbeesetti.nextplayer.feature.live.navigation.liveEntry
+import dev.anilbeesetti.nextplayer.feature.live.navigation.liveSourcesEntry
 import dev.anilbeesetti.nextplayer.feature.live.navigation.navigateToAddLiveSource
 import dev.anilbeesetti.nextplayer.feature.live.navigation.navigateToLiveChannels
+import dev.anilbeesetti.nextplayer.feature.live.navigation.navigateToLiveSources
 import dev.anilbeesetti.nextplayer.settings.navigation.navigateToSettings
 
 fun EntryProviderScope<NavKey>.liveNavGraph(
@@ -16,6 +18,13 @@ fun EntryProviderScope<NavKey>.liveNavGraph(
     backStack: NavBackStack<NavKey>,
 ) {
     liveEntry(
+        onManageSources = { backStack.navigateToLiveSources() },
+        onSettingsClick = backStack::navigateToSettings,
+        onPlayChannel = { channel -> context.startPlayback(channel) },
+    )
+
+    liveSourcesEntry(
+        onNavigateUp = { backStack.removeLastIfNotRoot() },
         onAddSource = { backStack.navigateToAddLiveSource() },
         onEditSource = { id -> backStack.navigateToAddLiveSource(id) },
         onOpenSource = { id -> backStack.navigateToLiveChannels(id) },

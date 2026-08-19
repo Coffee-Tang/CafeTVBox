@@ -52,9 +52,17 @@ import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.core.ui.components.tvListFocus
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 
+/**
+ * Browses channels, either the Live tab's own view of every source or one source on its own.
+ *
+ * The affordances say which view this is: the tab has no [onNavigateUp] and instead reaches the
+ * playlists through [onManageSources], while a single source is something to come back up from.
+ */
 @Composable
 fun LiveChannelsScreenRoute(
-    onNavigateUp: () -> Unit,
+    onNavigateUp: (() -> Unit)?,
+    onManageSources: (() -> Unit)?,
+    onSettingsClick: (() -> Unit)?,
     onPlayChannel: (LiveChannel) -> Unit,
     viewModel: LiveChannelsViewModel,
 ) {
@@ -62,6 +70,8 @@ fun LiveChannelsScreenRoute(
     LiveChannelsScreen(
         uiState = uiState,
         onNavigateUp = onNavigateUp,
+        onManageSources = onManageSources,
+        onSettingsClick = onSettingsClick,
         onPlayChannel = onPlayChannel,
         onSelectGroup = viewModel::selectGroup,
         onRetry = viewModel::refresh,
@@ -71,7 +81,9 @@ fun LiveChannelsScreenRoute(
 @Composable
 internal fun LiveChannelsScreen(
     uiState: LiveChannelsUiState,
-    onNavigateUp: () -> Unit,
+    onNavigateUp: (() -> Unit)?,
+    onManageSources: (() -> Unit)?,
+    onSettingsClick: (() -> Unit)?,
     onPlayChannel: (LiveChannel) -> Unit,
     onSelectGroup: (Int) -> Unit,
     onRetry: () -> Unit,
@@ -82,11 +94,13 @@ internal fun LiveChannelsScreen(
                 title = uiState.sourceName.ifBlank { stringResource(R.string.live_tv) },
                 fontWeight = FontWeight.Bold,
                 navigationIcon = {
-                    IconButton(onClick = onNavigateUp, modifier = Modifier.tvFocusRing()) {
-                        Icon(
-                            imageVector = NextIcons.ArrowBack,
-                            contentDescription = stringResource(R.string.navigate_up),
-                        )
+                    if (onNavigateUp != null) {
+                        IconButton(onClick = onNavigateUp, modifier = Modifier.tvFocusRing()) {
+                            Icon(
+                                imageVector = NextIcons.ArrowBack,
+                                contentDescription = stringResource(R.string.navigate_up),
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -95,6 +109,22 @@ internal fun LiveChannelsScreen(
                             imageVector = NextIcons.Update,
                             contentDescription = stringResource(R.string.refresh),
                         )
+                    }
+                    if (onManageSources != null) {
+                        IconButton(onClick = onManageSources, modifier = Modifier.tvFocusRing()) {
+                            Icon(
+                                imageVector = NextIcons.Playlist,
+                                contentDescription = stringResource(R.string.manage_playlist_sources),
+                            )
+                        }
+                    }
+                    if (onSettingsClick != null) {
+                        IconButton(onClick = onSettingsClick, modifier = Modifier.tvFocusRing()) {
+                            Icon(
+                                imageVector = NextIcons.Settings,
+                                contentDescription = stringResource(R.string.settings),
+                            )
+                        }
                     }
                 },
             )
@@ -108,7 +138,7 @@ internal fun LiveChannelsScreen(
         ) {
             when {
                 uiState.isLoading -> LoadingState()
-                uiState.errorMessage != null -> ErrorState(
+                uiState.loadFailed -> ErrorState(
                     message = uiState.errorMessage,
                     onRetry = onRetry,
                 )
@@ -300,7 +330,7 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun ErrorState(message: String, onRetry: () -> Unit) {
+private fun ErrorState(message: String?, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -322,7 +352,7 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
         )
         Spacer(Modifier.size(8.dp))
         Text(
-            text = message,
+            text = message ?: stringResource(R.string.playlist_source_error_description),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

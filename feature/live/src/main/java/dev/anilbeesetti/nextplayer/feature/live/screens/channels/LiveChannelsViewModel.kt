@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.anilbeesetti.nextplayer.core.data.repository.EpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
+import dev.anilbeesetti.nextplayer.core.domain.GetLiveChannelsUseCase
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
 import dev.anilbeesetti.nextplayer.core.model.LiveProgramme
 import dev.anilbeesetti.nextplayer.core.model.channelKey
@@ -24,6 +25,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * A row of the group pane, holding the channels to list when it is picked.
+ *
+ * [name] is the group as the playlist wrote it, and is empty for channels a playlist left
+ * ungrouped.
+ */
 data class LiveChannelGroup(
     val name: String,
     val channels: List<LiveChannel>,
@@ -34,6 +41,9 @@ data class LiveChannelsUiState(
     val groups: List<LiveChannelGroup> = emptyList(),
     val selectedGroupIndex: Int = 0,
     val isLoading: Boolean = true,
+    /** Nothing could be read at all, so there is no list to show. */
+    val loadFailed: Boolean = false,
+    /** What the failure said, when it said anything worth repeating. */
     val errorMessage: String? = null,
     /** Title of what is on air, by channel name. Guides cover only a fraction of the channels. */
     val nowPlaying: Map<String, String> = emptyMap(),
@@ -44,17 +54,25 @@ data class LiveChannelsUiState(
     val channelCount: Int get() = groups.sumOf { it.channels.size }
 }
 
+/**
+ * The channels to browse, either those of one source or those every source offers between them.
+ *
+ * Both views show the same list of the same channels, told what is on air the same way, and differ
+ * only in where the channels come from and how they are grouped.
+ */
 @HiltViewModel(assistedFactory = LiveChannelsViewModel.Factory::class)
 class LiveChannelsViewModel @AssistedInject constructor(
-    @Assisted private val sourceId: Long,
+    @Assisted private val sourceId: Long?,
     private val sourceRepository: LiveSourceRepository,
     private val channelRepository: LiveChannelRepository,
+    private val getLiveChannels: GetLiveChannelsUseCase,
     private val epgRepository: EpgRepository,
 ) : ViewModel() {
 
     @AssistedFactory
     interface Factory {
-        fun create(sourceId: Long): LiveChannelsViewModel
+        /** [sourceId] is null to browse every configured source at once. */
+        fun create(sourceId: Long?): LiveChannelsViewModel
     }
 
     private val uiStateInternal = MutableStateFlow(LiveChannelsUiState())
@@ -69,7 +87,7 @@ class LiveChannelsViewModel @AssistedInject constructor(
     }
 
     fun refresh() {
-        loadChannels()
+        loadChannels(refresh = true)
         loadGuide()
     }
 
@@ -127,45 +145,58 @@ class LiveChannelsViewModel @AssistedInject constructor(
         }
     }
 
-    private fun loadChannels() {
-        uiStateInternal.update { it.copy(isLoading = true, errorMessage = null) }
+    private fun loadChannels(refresh: Boolean = false) {
+        uiStateInternal.update { it.copy(isLoading = true, loadFailed = false, errorMessage = null) }
         viewModelScope.launch {
-            val source = sourceRepository.getSource(sourceId)
-            if (source == null) {
-                uiStateInternal.update {
-                    it.copy(isLoading = false, errorMessage = "Source not found")
-                }
-                return@launch
-            }
-
-            channelRepository.getChannels(source.url)
-                .onSuccess { channels ->
-                    uiStateInternal.update {
-                        it.copy(
-                            sourceName = source.name,
-                            groups = channels.toGroups(),
-                            selectedGroupIndex = 0,
-                            isLoading = false,
-                            errorMessage = null,
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    uiStateInternal.update {
-                        it.copy(
-                            sourceName = source.name,
-                            isLoading = false,
-                            errorMessage = error.message,
-                        )
-                    }
-                }
+            if (sourceId == null) loadEverySource(refresh) else loadOneSource(sourceId, refresh)
         }
     }
 
-    /** Groups channels by `group-title`, keeping the order in which groups appear in the playlist. */
-    private fun List<LiveChannel>.toGroups(): List<LiveChannelGroup> =
-        groupBy { it.group }
-            .map { (group, channels) -> LiveChannelGroup(name = group, channels = channels) }
+    private suspend fun loadEverySource(refresh: Boolean) {
+        val result = getLiveChannels(refresh)
+        uiStateInternal.update {
+            it.copy(
+                groups = playlistGroups(result.channels),
+                selectedGroupIndex = 0,
+                isLoading = false,
+                loadFailed = result.channels.isEmpty() && result.sourceCount > 0,
+            )
+        }
+    }
+
+    private suspend fun loadOneSource(sourceId: Long, refresh: Boolean) {
+        val source = sourceRepository.getSource(sourceId)
+        if (source == null) {
+            uiStateInternal.update {
+                it.copy(isLoading = false, loadFailed = true, errorMessage = "Source not found")
+            }
+            return
+        }
+
+        channelRepository.getChannels(source.url, refresh)
+            .onSuccess { channels ->
+                uiStateInternal.update {
+                    it.copy(
+                        sourceName = source.name,
+                        groups = playlistGroups(channels),
+                        selectedGroupIndex = 0,
+                        isLoading = false,
+                        loadFailed = false,
+                        errorMessage = null,
+                    )
+                }
+            }
+            .onFailure { error ->
+                uiStateInternal.update {
+                    it.copy(
+                        sourceName = source.name,
+                        isLoading = false,
+                        loadFailed = true,
+                        errorMessage = error.message,
+                    )
+                }
+            }
+    }
 
     private companion object {
         const val NOW_PLAYING_INTERVAL_MS = 60_000L

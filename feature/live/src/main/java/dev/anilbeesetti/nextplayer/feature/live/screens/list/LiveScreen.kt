@@ -61,6 +61,7 @@ import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 
 @Composable
 fun LiveScreenRoute(
+    onNavigateUp: () -> Unit,
     onAddSource: () -> Unit,
     onEditSource: (Long) -> Unit,
     onOpenSource: (Long) -> Unit,
@@ -70,6 +71,7 @@ fun LiveScreenRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     LiveScreen(
         uiState = uiState,
+        onNavigateUp = onNavigateUp,
         onAddSource = onAddSource,
         onEditSource = onEditSource,
         onOpenSource = onOpenSource,
@@ -81,6 +83,7 @@ fun LiveScreenRoute(
 @Composable
 internal fun LiveScreen(
     uiState: LiveUiState,
+    onNavigateUp: () -> Unit,
     onAddSource: () -> Unit,
     onEditSource: (Long) -> Unit,
     onOpenSource: (Long) -> Unit,
@@ -104,8 +107,16 @@ internal fun LiveScreen(
     Scaffold(
         topBar = {
             NextTopAppBar(
-                title = stringResource(R.string.live_tv),
+                title = stringResource(R.string.manage_playlist_sources),
                 fontWeight = FontWeight.Bold,
+                navigationIcon = {
+                    IconButton(onClick = onNavigateUp, modifier = Modifier.tvFocusRing()) {
+                        Icon(
+                            imageVector = NextIcons.ArrowBack,
+                            contentDescription = stringResource(R.string.navigate_up),
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = onSettingsClick, modifier = Modifier.tvFocusRing()) {
                         Icon(
@@ -307,6 +318,7 @@ private fun LiveScreenPreview() {
     NextPlayerTheme {
         LiveScreen(
             uiState = LiveUiState(sources = listOf(LiveSource.sample), isLoading = false),
+            onNavigateUp = {},
             onAddSource = {},
             onEditSource = {},
             onOpenSource = {},

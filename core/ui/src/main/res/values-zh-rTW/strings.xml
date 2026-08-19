@@ -386,6 +386,7 @@
     <string name="share_name_optional_description">留空則列出伺服器上的所有共享。</string>
     <string name="live_tv">直播</string>
     <string name="add_playlist_source">新增直播來源</string>
+    <string name="manage_playlist_sources">管理直播來源</string>
     <string name="edit_playlist_source">編輯直播來源</string>
     <string name="delete_playlist_source">刪除直播來源</string>
     <string name="delete_playlist_source_confirmation">移除「%1$s」嗎？</string>

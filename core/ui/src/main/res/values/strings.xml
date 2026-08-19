@@ -411,6 +411,7 @@
     <!-- Live TV -->
     <string name="live_tv">Live TV</string>
     <string name="add_playlist_source">Add playlist</string>
+    <string name="manage_playlist_sources">Manage playlists</string>
     <string name="edit_playlist_source">Edit playlist</string>
     <string name="delete_playlist_source">Delete playlist</string>
     <string name="delete_playlist_source_confirmation">Remove \"%1$s\"?</string>

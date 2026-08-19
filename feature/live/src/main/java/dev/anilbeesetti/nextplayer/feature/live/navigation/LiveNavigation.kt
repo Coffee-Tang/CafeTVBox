@@ -23,10 +23,17 @@ import kotlinx.serialization.Serializable
 object LiveRoute : NavKey
 
 @Serializable
+object LiveSourcesRoute : NavKey
+
+@Serializable
 data class AddLiveSourceRoute(val sourceId: Long? = null) : NavKey
 
 @Serializable
 data class LiveChannelsRoute(val sourceId: Long) : NavKey
+
+fun NavBackStack<NavKey>.navigateToLiveSources() {
+    add(LiveSourcesRoute)
+}
 
 fun NavBackStack<NavKey>.navigateToAddLiveSource(sourceId: Long? = null) {
     add(AddLiveSourceRoute(sourceId))
@@ -36,14 +43,35 @@ fun NavBackStack<NavKey>.navigateToLiveChannels(sourceId: Long) {
     add(LiveChannelsRoute(sourceId))
 }
 
+/** The Live tab itself: every channel the configured sources offer between them. */
 fun EntryProviderScope<NavKey>.liveEntry(
+    onManageSources: () -> Unit,
+    onSettingsClick: () -> Unit,
+    onPlayChannel: (LiveChannel) -> Unit,
+) {
+    entry<LiveRoute> {
+        LiveChannelsScreenRoute(
+            onNavigateUp = null,
+            onManageSources = onManageSources,
+            onSettingsClick = onSettingsClick,
+            onPlayChannel = onPlayChannel,
+            viewModel = hiltViewModel<LiveChannelsViewModel, LiveChannelsViewModel.Factory>(
+                creationCallback = { factory -> factory.create(null) },
+            ),
+        )
+    }
+}
+
+fun EntryProviderScope<NavKey>.liveSourcesEntry(
+    onNavigateUp: () -> Unit,
     onAddSource: () -> Unit,
     onEditSource: (sourceId: Long) -> Unit,
     onOpenSource: (sourceId: Long) -> Unit,
     onSettingsClick: () -> Unit,
 ) {
-    entry<LiveRoute> {
+    entry<LiveSourcesRoute> {
         LiveScreenRoute(
+            onNavigateUp = onNavigateUp,
             onAddSource = onAddSource,
             onEditSource = onEditSource,
             onOpenSource = onOpenSource,
@@ -84,6 +112,8 @@ fun EntryProviderScope<NavKey>.liveChannelsEntry(
     entry<LiveChannelsRoute> { key ->
         LiveChannelsScreenRoute(
             onNavigateUp = onNavigateUp,
+            onManageSources = null,
+            onSettingsClick = null,
             onPlayChannel = onPlayChannel,
             viewModel = hiltViewModel<LiveChannelsViewModel, LiveChannelsViewModel.Factory>(
                 creationCallback = { factory -> factory.create(key.sourceId) },
