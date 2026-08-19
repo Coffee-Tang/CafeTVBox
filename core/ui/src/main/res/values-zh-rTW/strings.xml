@@ -409,6 +409,13 @@
     <string name="preset_fanmingming_ipv6_description">約 80 個央視與衛視頻道，需要公網 IPv6。</string>
     <string name="ungrouped_channels">未分組</string>
     <string name="channel_count">%1$d 個頻道</string>
+    <string name="live_category_all">全部頻道</string>
+    <string name="live_category_cctv">央視</string>
+    <string name="live_category_satellite">衛視</string>
+    <string name="live_category_other">其他</string>
+    <plurals name="live_sources_failed">
+        <item quantity="other">%1$d 個直播來源載入失敗</item>
+    </plurals>
     <string name="refresh">重新整理</string>
     <string name="ok">確定</string>
     <string name="continue_watching">繼續觀看</string>

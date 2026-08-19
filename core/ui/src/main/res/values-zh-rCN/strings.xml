@@ -409,6 +409,13 @@
     <string name="preset_fanmingming_ipv6_description">约 80 个央视和卫视频道，需要公网 IPv6。</string>
     <string name="ungrouped_channels">未分组</string>
     <string name="channel_count">%1$d 个频道</string>
+    <string name="live_category_all">全部频道</string>
+    <string name="live_category_cctv">央视</string>
+    <string name="live_category_satellite">卫视</string>
+    <string name="live_category_other">其他</string>
+    <plurals name="live_sources_failed">
+        <item quantity="other">%1$d 个直播源加载失败</item>
+    </plurals>
     <string name="refresh">刷新</string>
     <string name="ok">确定</string>
     <string name="continue_watching">继续观看</string>

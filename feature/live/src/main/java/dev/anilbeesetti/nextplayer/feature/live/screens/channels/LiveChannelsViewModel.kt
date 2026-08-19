@@ -1,5 +1,6 @@
 package dev.anilbeesetti.nextplayer.feature.live.screens.channels
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -29,11 +30,13 @@ import kotlinx.coroutines.launch
  * A row of the group pane, holding the channels to list when it is picked.
  *
  * [name] is the group as the playlist wrote it, and is empty for channels a playlist left
- * ungrouped.
+ * ungrouped. A row this app derived rather than read from a playlist has no name a playlist gave
+ * it and carries [labelRes] instead, so that naming it needs no `Context` here.
  */
 data class LiveChannelGroup(
     val name: String,
     val channels: List<LiveChannel>,
+    @StringRes val labelRes: Int? = null,
 )
 
 data class LiveChannelsUiState(
@@ -45,6 +48,10 @@ data class LiveChannelsUiState(
     val loadFailed: Boolean = false,
     /** What the failure said, when it said anything worth repeating. */
     val errorMessage: String? = null,
+    /** Sources that could not be read while others could, so the list is still worth showing. */
+    val failedSourceCount: Int = 0,
+    /** False only when no source is configured at all, which is a matter of asking for one. */
+    val hasSources: Boolean = true,
     /** Title of what is on air, by channel name. Guides cover only a fraction of the channels. */
     val nowPlaying: Map<String, String> = emptyMap(),
 ) {
@@ -156,10 +163,12 @@ class LiveChannelsViewModel @AssistedInject constructor(
         val result = getLiveChannels(refresh)
         uiStateInternal.update {
             it.copy(
-                groups = playlistGroups(result.channels),
+                groups = categoryGroups(result.channels),
                 selectedGroupIndex = 0,
                 isLoading = false,
                 loadFailed = result.channels.isEmpty() && result.sourceCount > 0,
+                failedSourceCount = result.failedSources.size,
+                hasSources = result.sourceCount > 0,
             )
         }
     }

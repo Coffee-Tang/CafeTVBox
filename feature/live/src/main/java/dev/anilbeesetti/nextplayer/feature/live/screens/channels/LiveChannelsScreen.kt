@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -29,12 +31,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -138,17 +142,50 @@ internal fun LiveChannelsScreen(
         ) {
             when {
                 uiState.isLoading -> LoadingState()
+                !uiState.hasSources && onManageSources != null ->
+                    NoSourcesState(onManageSources = onManageSources)
                 uiState.loadFailed -> ErrorState(
                     message = uiState.errorMessage,
                     onRetry = onRetry,
                 )
-                else -> ChannelBrowser(
-                    uiState = uiState,
-                    onPlayChannel = onPlayChannel,
-                    onSelectGroup = onSelectGroup,
-                )
+                else -> Column(modifier = Modifier.fillMaxSize()) {
+                    if (uiState.failedSourceCount > 0) {
+                        FailedSourcesNotice(count = uiState.failedSourceCount)
+                    }
+                    ChannelBrowser(
+                        uiState = uiState,
+                        onPlayChannel = onPlayChannel,
+                        onSelectGroup = onSelectGroup,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
+    }
+}
+
+/** One quiet line: the channels of the sources that did answer are worth showing regardless. */
+@Composable
+private fun FailedSourcesNotice(count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = 24.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = NextIcons.Priority,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = pluralStringResource(R.plurals.live_sources_failed, count, count),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -157,8 +194,15 @@ private fun ChannelBrowser(
     uiState: LiveChannelsUiState,
     onPlayChannel: (LiveChannel) -> Unit,
     onSelectGroup: (Int) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(modifier = Modifier.fillMaxSize()) {
+    // A group holding hundreds of channels leaves an offset that means nothing in the next group.
+    val channelListState = rememberLazyListState()
+    LaunchedEffect(uiState.selectedGroupIndex) {
+        channelListState.scrollToItem(0)
+    }
+
+    Row(modifier = modifier.fillMaxSize()) {
         GroupList(
             groups = uiState.groups,
             selectedIndex = uiState.selectedGroupIndex,
@@ -171,6 +215,7 @@ private fun ChannelBrowser(
         ChannelList(
             channels = uiState.selectedChannels,
             nowPlaying = uiState.nowPlaying,
+            listState = channelListState,
             onPlayChannel = onPlayChannel,
             modifier = Modifier
                 .fillMaxSize()
@@ -214,7 +259,8 @@ private fun GroupList(
                     .padding(horizontal = 12.dp, vertical = 12.dp),
             ) {
                 Text(
-                    text = group.name.ifBlank { stringResource(R.string.ungrouped_channels) },
+                    text = group.labelRes?.let { stringResource(it) }
+                        ?: group.name.ifBlank { stringResource(R.string.ungrouped_channels) },
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -233,10 +279,12 @@ private fun GroupList(
 private fun ChannelList(
     channels: List<LiveChannel>,
     nowPlaying: Map<String, String>,
+    listState: LazyListState,
     onPlayChannel: (LiveChannel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
+        state = listState,
         modifier = modifier.tvListFocus(rememberTvListFocusRequester()),
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -326,6 +374,45 @@ private fun ChannelItem(
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
+    }
+}
+
+/** Nothing can be shown until a playlist is configured, which the playlists screen is for. */
+@Composable
+private fun NoSourcesState(onManageSources: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            imageVector = NextIcons.Live,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(48.dp),
+        )
+        Spacer(Modifier.size(16.dp))
+        Text(
+            text = stringResource(R.string.no_playlist_sources_title),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = stringResource(R.string.no_playlist_sources_description),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.size(24.dp))
+        Button(
+            onClick = onManageSources,
+            modifier = Modifier.tvFocusRing(shape = RoundedCornerShape(20.dp)),
+        ) {
+            Text(stringResource(R.string.manage_playlist_sources))
+        }
     }
 }
 

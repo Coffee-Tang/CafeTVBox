@@ -434,6 +434,14 @@
     <string name="preset_fanmingming_ipv6_description">Around 80 CCTV and provincial channels. Needs a public IPv6 network.</string>
     <string name="ungrouped_channels">Ungrouped</string>
     <string name="channel_count">%1$d channels</string>
+    <string name="live_category_all">All channels</string>
+    <string name="live_category_cctv">CCTV</string>
+    <string name="live_category_satellite">Satellite</string>
+    <string name="live_category_other">Other</string>
+    <plurals name="live_sources_failed">
+        <item quantity="one">1 playlist could not be loaded</item>
+        <item quantity="other">%1$d playlists could not be loaded</item>
+    </plurals>
     <string name="refresh">Refresh</string>
     <string name="ok">OK</string>
 
