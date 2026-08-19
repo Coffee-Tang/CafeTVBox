@@ -370,6 +370,7 @@ fun MediaPlayerScreen(
                             ) {
                                 ControlsTopView(
                                     title = metadataState.title ?: "",
+                                    isLive = mediaPresentationState.isLive,
                                     onAudioClick = {
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayView.AUDIO_SELECTOR
@@ -397,6 +398,7 @@ fun MediaPlayerScreen(
                                 videoZoomAndContentScaleState.showContentScaleIndicator -> InfoView(info = stringResource(videoZoomAndContentScaleState.videoContentScale.nameRes()))
                                 controlsVisibilityState.controlsVisible -> ControlsMiddleView(
                                     player = player,
+                                    isLive = mediaPresentationState.isLive,
                                     playPauseModifier = Modifier.thenIf(isTv) {
                                         focusRequester(playPauseFocusRequester)
                                             .onFocusChanged { isPlayPauseFocused = it.hasFocus }
@@ -421,6 +423,7 @@ fun MediaPlayerScreen(
                                     },
                                     videoContentScale = videoZoomAndContentScaleState.videoContentScale,
                                     isPipSupported = pictureInPictureState.isPipSupported,
+                                    isLive = mediaPresentationState.isLive,
                                     seekBarModifier = Modifier.thenIf(isTv) {
                                         focusRequester(seekBarFocusRequester)
                                             .focusProperties { up = playPauseFocusRequester }
@@ -629,6 +632,7 @@ fun BoxScope.DpadSeekIndicator(
 fun ControlsMiddleView(
     modifier: Modifier = Modifier,
     player: Player,
+    isLive: Boolean = false,
     playPauseModifier: Modifier = Modifier,
 ) {
     Row(
@@ -636,9 +640,14 @@ fun ControlsMiddleView(
         horizontalArrangement = Arrangement.spacedBy(40.dp, alignment = Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PreviousButton(player = player)
+        // A channel is opened on its own, so there is nothing to step through.
+        if (!isLive) {
+            PreviousButton(player = player)
+        }
         PlayPauseButton(player = player, modifier = playPauseModifier)
-        NextButton(player = player)
+        if (!isLive) {
+            NextButton(player = player)
+        }
     }
 }
 

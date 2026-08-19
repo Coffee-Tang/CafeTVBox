@@ -46,9 +46,20 @@ class MediaPresentationState(
     var isBuffering: Boolean by mutableStateOf(false)
         private set
 
+    /**
+     * Whether what is playing is a broadcast rather than something with an end of its own.
+     *
+     * Media3 only reports a live window once the manifest has said as much, which can come after
+     * playback has begun. Having seen it live once is therefore enough, and spares the controls
+     * that a broadcast has no use for from being shown for a moment before going away again.
+     */
+    var isLive: Boolean by mutableStateOf(false)
+        private set
+
     suspend fun observe() {
         updatePosition()
         updateDuration()
+        updateIsLive()
         isPlaying = player.isPlaying
         isLoading = player.isLoading
         isBuffering = player.playbackState == Player.STATE_BUFFERING
@@ -56,6 +67,10 @@ class MediaPresentationState(
         coroutineScope {
             launch {
                 player.listen { events ->
+                    if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                        this@MediaPresentationState.isLive = false
+                    }
+
                     if (events.containsAny(
                             Player.EVENT_MEDIA_ITEM_TRANSITION,
                             Player.EVENT_TIMELINE_CHANGED,
@@ -63,6 +78,7 @@ class MediaPresentationState(
                         )
                     ) {
                         updateDuration()
+                        updateIsLive()
                     }
 
                     if (events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)) {
@@ -98,6 +114,10 @@ class MediaPresentationState(
 
     private fun updateDuration() {
         duration = player.duration.coerceAtLeast(0L)
+    }
+
+    private fun updateIsLive() {
+        isLive = isLive || player.isCurrentMediaItemLive
     }
 }
 

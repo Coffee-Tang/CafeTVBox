@@ -32,6 +32,7 @@ import dev.anilbeesetti.nextplayer.feature.player.buttons.PlayerButton
 fun ControlsTopView(
     modifier: Modifier = Modifier,
     title: String,
+    isLive: Boolean = false,
     onAudioClick: () -> Unit = {},
     onSubtitleClick: () -> Unit = {},
     onPlaybackSpeedClick: () -> Unit = {},
@@ -69,17 +70,20 @@ fun ControlsTopView(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            PlayerButton(onClick = onPlaylistClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_playlist),
-                    contentDescription = null,
-                )
-            }
-            PlayerButton(onClick = onPlaybackSpeedClick) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_speed),
-                    contentDescription = null,
-                )
+            // A broadcast is watched on its own, at the speed it is sent out.
+            if (!isLive) {
+                PlayerButton(onClick = onPlaylistClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_playlist),
+                        contentDescription = null,
+                    )
+                }
+                PlayerButton(onClick = onPlaybackSpeedClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_speed),
+                        contentDescription = null,
+                    )
+                }
             }
             PlayerButton(onClick = onAudioClick) {
                 Icon(

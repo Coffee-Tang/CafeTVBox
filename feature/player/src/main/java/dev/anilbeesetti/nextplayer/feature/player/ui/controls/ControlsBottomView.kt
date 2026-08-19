@@ -80,6 +80,7 @@ fun ControlsBottomView(
     controlsAlignment: Alignment.Horizontal,
     videoContentScale: VideoContentScale,
     isPipSupported: Boolean,
+    isLive: Boolean = false,
     seekBarModifier: Modifier = Modifier,
     onVideoContentScaleClick: () -> Unit,
     onVideoContentScaleLongClick: () -> Unit,
@@ -194,8 +195,11 @@ fun ControlsBottomView(
                     contentDescription = null,
                 )
             }
-            LoopButton(player = player)
-            ShuffleButton(player = player)
+            // Neither repeating nor shuffling means anything for a single, endless stream.
+            if (!isLive) {
+                LoopButton(player = player)
+                ShuffleButton(player = player)
+            }
         }
     }
 }
