@@ -119,11 +119,11 @@ import dev.anilbeesetti.nextplayer.core.ui.preview.DayNightPreview
 import dev.anilbeesetti.nextplayer.core.ui.preview.VideoPickerPreviewParameterProvider
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.CenterCircularProgressBar
-import dev.anilbeesetti.nextplayer.feature.videopicker.composables.ContinueWatchingRow
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaInfoDialog
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaView
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.NoVideosFound
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.QuickSettingsDialog
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.RecentMediaRow
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.RenameDialog
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.TextIconToggleButton
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.PinDotsIndicator
@@ -167,17 +167,29 @@ internal fun MediaPickerScreen(
     val firstActionFocusRequester = remember { FocusRequester() }
     var restoredFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
     val continueWatchingFocusRequester = remember { FocusRequester() }
+    val recentLiveFocusRequester = remember { FocusRequester() }
     val hasMedia = (uiState.mediaDataState as? DataState.Success)?.value
         ?.let { it.folders.isNotEmpty() || it.videos.isNotEmpty() } == true
-    val showContinueWatching = uiState.folderName == null && uiState.recentlyPlayed.isNotEmpty()
+    val isHome = uiState.folderName == null
+    val showContinueWatching = isHome && uiState.continueWatching.isNotEmpty()
+    val showRecentLive = isHome && uiState.recentLive.isNotEmpty()
 
-    // On TV, pressing down from any top-bar button lands on the topmost item of the content.
+    // On TV, pressing down from any top-bar button lands on the topmost item of the content, and
+    // pressing down from a history row leads to whatever the next one down happens to be.
     val topBarDownModifier = when {
         !isTv -> Modifier
         showContinueWatching -> Modifier.focusProperties { down = continueWatchingFocusRequester }
+        showRecentLive -> Modifier.focusProperties { down = recentLiveFocusRequester }
         hasMedia -> Modifier.focusProperties { down = firstItemFocusRequester }
         else -> Modifier
     }
+    val belowContinueWatching = when {
+        !isTv -> null
+        showRecentLive -> recentLiveFocusRequester
+        hasMedia -> firstItemFocusRequester
+        else -> null
+    }
+    val belowRecentLive = firstItemFocusRequester.takeIf { isTv && hasMedia }
     val permissionState = rememberPermissionState(permission = storagePermission)
     var wasPermissionGranted by remember { mutableStateOf(permissionState.status.isGranted) }
 
@@ -510,12 +522,23 @@ internal fun MediaPickerScreen(
                         val mediaHolder = uiState.mediaDataState.value
                         Column(modifier = Modifier.fillMaxSize()) {
                             if (showContinueWatching) {
-                                ContinueWatchingRow(
-                                    items = uiState.recentlyPlayed,
+                                RecentMediaRow(
+                                    title = R.string.continue_watching,
+                                    items = uiState.continueWatching,
                                     onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
                                     onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
                                     firstItemFocusRequester = if (isTv) continueWatchingFocusRequester else null,
-                                    downFocusRequester = if (isTv && hasMedia) firstItemFocusRequester else null,
+                                    downFocusRequester = belowContinueWatching,
+                                )
+                            }
+                            if (showRecentLive) {
+                                RecentMediaRow(
+                                    title = R.string.recent_live,
+                                    items = uiState.recentLive,
+                                    onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
+                                    onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
+                                    firstItemFocusRequester = if (isTv) recentLiveFocusRequester else null,
+                                    downFocusRequester = belowRecentLive,
                                 )
                             }
                             Box(modifier = Modifier.weight(1f)) {

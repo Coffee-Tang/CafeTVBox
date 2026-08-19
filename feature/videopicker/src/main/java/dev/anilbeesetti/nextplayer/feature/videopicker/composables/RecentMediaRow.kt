@@ -1,5 +1,6 @@
 package dev.anilbeesetti.nextplayer.feature.videopicker.composables
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,13 +48,14 @@ import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 
 /**
- * The items the user watched most recently, newest first, for picking up where they left off.
+ * Items from playback history, newest first, under [title].
  *
  * @param firstItemFocusRequester Set on the first card so a TV remote can reach the row from above.
  * @param downFocusRequester Where pressing down from a card leads, when there is a list below.
  */
 @Composable
-fun ContinueWatchingRow(
+fun RecentMediaRow(
+    @StringRes title: Int,
     items: List<RecentMedium>,
     onItemClick: (RecentMedium) -> Unit,
     onSeeAllClick: () -> Unit,
@@ -68,7 +70,7 @@ fun ContinueWatchingRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ListSectionTitle(
-                text = stringResource(id = R.string.continue_watching),
+                text = stringResource(id = title),
                 contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 8.dp),
                 modifier = Modifier.weight(1f),
             )
@@ -81,7 +83,7 @@ fun ContinueWatchingRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(items = items, key = { _, item -> item.mediaKey }) { index, item ->
-                ContinueWatchingCard(
+                RecentMediumCard(
                     medium = item,
                     onClick = { onItemClick(item) },
                     modifier = Modifier
@@ -98,7 +100,7 @@ fun ContinueWatchingRow(
 }
 
 @Composable
-private fun ContinueWatchingCard(
+private fun RecentMediumCard(
     medium: RecentMedium,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -116,8 +118,8 @@ private fun ContinueWatchingCard(
                 .aspectRatio(16 / 9f),
         ) {
             MediumArtwork(medium = medium)
-            // A stream is watched as it arrives, so there is no whole for progress to be part of.
-            medium.progress.takeIf { medium.source != RecentMedium.Source.STREAM }?.let { progress ->
+            // A broadcast is watched as it arrives, so there is no whole for progress to be part of.
+            medium.progress.takeIf { !medium.isLive }?.let { progress ->
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
@@ -137,7 +139,7 @@ private fun ContinueWatchingCard(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = stringResource(id = medium.source.labelRes),
+                text = stringResource(id = medium.labelRes),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -157,8 +159,8 @@ private fun MediumArtwork(medium: RecentMedium) {
             .background(MaterialTheme.colorScheme.surfaceContainerHighest),
         contentAlignment = Alignment.Center,
     ) {
-        when (medium.source) {
-            RecentMedium.Source.LOCAL -> AsyncImage(
+        when {
+            medium.source == RecentMedium.Source.LOCAL -> AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(medium.mediaKey)
                     .crossfade(true)
@@ -168,15 +170,12 @@ private fun MediumArtwork(medium: RecentMedium) {
                 modifier = Modifier.fillMaxSize(),
             )
 
-            RecentMedium.Source.SHARE -> Icon(
-                imageVector = NextIcons.Dns,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(32.dp),
-            )
-
-            RecentMedium.Source.STREAM -> Icon(
-                imageVector = NextIcons.Live,
+            else -> Icon(
+                imageVector = when {
+                    medium.source == RecentMedium.Source.SHARE -> NextIcons.Dns
+                    medium.isLive -> NextIcons.Live
+                    else -> NextIcons.Link
+                },
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(32.dp),
@@ -185,20 +184,23 @@ private fun MediumArtwork(medium: RecentMedium) {
     }
 }
 
-private val RecentMedium.Source.labelRes: Int
-    get() = when (this) {
-        RecentMedium.Source.LOCAL -> R.string.media_source_local
-        RecentMedium.Source.SHARE -> R.string.media_source_share
-        RecentMedium.Source.STREAM -> R.string.media_source_stream
+/** What the item is, in a word: a broadcast is worth telling apart from a video at an address. */
+private val RecentMedium.labelRes: Int
+    get() = when {
+        source == RecentMedium.Source.LOCAL -> R.string.media_source_local
+        source == RecentMedium.Source.SHARE -> R.string.media_source_share
+        isLive -> R.string.media_source_stream
+        else -> R.string.media_source_url
     }
 
 private val CARD_WIDTH = 168.dp
 
 @Preview
 @Composable
-private fun ContinueWatchingRowPreview() {
+private fun RecentMediaRowPreview() {
     NextPlayerTheme {
-        ContinueWatchingRow(
+        RecentMediaRow(
+            title = R.string.continue_watching,
             onSeeAllClick = {},
             items = listOf(
                 RecentMedium(

@@ -190,10 +190,23 @@ class MediaPickerViewModel @AssistedInject constructor(
         }
     }
 
+    /**
+     * Fills the two rows of history the home screen shows.
+     *
+     * The whole of the history is read rather than the leading [CONTINUE_WATCHING_LIMIT] entries of
+     * it, because each row is limited on its own: an evening spent on live channels would otherwise
+     * push every film and episode out of the row meant for picking one up again.
+     */
     private fun collectRecentlyPlayed() {
         viewModelScope.launch {
-            mediaRepository.observeRecentlyPlayed(CONTINUE_WATCHING_LIMIT).collect { recentlyPlayed ->
-                uiStateInternal.update { it.copy(recentlyPlayed = recentlyPlayed) }
+            mediaRepository.observeRecentlyPlayed().collect { history ->
+                val (live, onDemand) = history.partition { it.isLive }
+                uiStateInternal.update {
+                    it.copy(
+                        continueWatching = onDemand.take(CONTINUE_WATCHING_LIMIT),
+                        recentLive = live.take(CONTINUE_WATCHING_LIMIT),
+                    )
+                }
             }
         }
     }
@@ -540,7 +553,9 @@ data class MediaPickerUiState(
     val refreshing: Boolean = false,
     val recentlyPlayedVideo: Video? = null,
     val recentlyPlayedFolder: Folder? = null,
-    val recentlyPlayed: List<RecentMedium> = emptyList(),
+    /** Films and episodes to pick up again, and the channels last watched, each newest first. */
+    val continueWatching: List<RecentMedium> = emptyList(),
+    val recentLive: List<RecentMedium> = emptyList(),
     val mediaDataState: DataState<MediaHolder?> = DataState.Loading,
     val preferences: ApplicationPreferences = ApplicationPreferences(),
     val mediaInfo: dev.anilbeesetti.nextplayer.core.model.MediaInfo? = null,

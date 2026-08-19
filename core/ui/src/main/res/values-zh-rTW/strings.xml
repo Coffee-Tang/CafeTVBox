@@ -422,6 +422,7 @@
     <string name="refresh">重新整理</string>
     <string name="ok">確定</string>
     <string name="continue_watching">繼續觀看</string>
+    <string name="recent_live">最近直播</string>
     <string name="see_all">查看全部</string>
     <string name="watch_history">觀看紀錄</string>
     <string name="watched_up_to">%1$s / %2$s</string>
@@ -434,6 +435,7 @@
     <string name="media_source_local">本機</string>
     <string name="media_source_share">網路共享</string>
     <string name="media_source_stream">網路直播</string>
+    <string name="media_source_url">線上影片</string>
     <string name="error_playback_source_unavailable">這一項的來源已經不存在了</string>
     <string name="authentication">驗證</string>
     <string name="ssh_key">SSH 金鑰</string>

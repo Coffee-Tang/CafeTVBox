@@ -13,6 +13,18 @@ data class RecentMedium(
     val lastPlayedTime: Long,
 ) {
     /**
+     * Whether this was watched as it was broadcast, rather than played from end to end.
+     *
+     * A broadcast has no length worth recording: what a live stream reports is the rolling window it
+     * keeps, which says nothing about what is on. So a stream that was left without a length was
+     * live, whether it is named by its station or, as older entries are, by the line it was on. One
+     * whose length was never learnt because playback failed at once reads as live too, which costs
+     * nothing: it has no position to resume from either way.
+     */
+    val isLive: Boolean
+        get() = source == Source.STREAM && durationMs == null
+
+    /**
      * How far playback reached, as a fraction of the whole, or null when there is nothing to
      * resume: a live channel has no end, and an item just started has no progress to show.
      */
