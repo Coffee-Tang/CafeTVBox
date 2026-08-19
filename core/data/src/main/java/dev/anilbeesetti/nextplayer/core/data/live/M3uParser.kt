@@ -1,6 +1,7 @@
 package dev.anilbeesetti.nextplayer.core.data.live
 
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
+import dev.anilbeesetti.nextplayer.core.model.channelKey
 
 /**
  * Parses the text of an m3u / m3u8 playlist into [LiveChannel]s.
@@ -9,10 +10,10 @@ import dev.anilbeesetti.nextplayer.core.model.LiveChannel
  * `group-title` attributes, plus `#EXTGRP` as a fallback group. Attribute values may contain
  * commas because the channel title is taken at the first comma that sits outside quotes.
  *
- * Entries that share a name are folded into one channel holding every line, which is how public
- * playlists express alternatives: they simply repeat the channel once per line, often spread over
- * several groups. The first entry decides the name, group and position; a later entry only fills
- * in a logo or tvg-id the first one left out.
+ * Entries naming the same station are folded into one channel holding every line, which is how
+ * public playlists express alternatives: they simply repeat the station once per line, often spread
+ * over several groups and written a little differently each time. The first entry decides the name,
+ * group and position; a later entry only fills in a logo or tvg-id the first one left out.
  */
 object M3uParser {
 
@@ -20,7 +21,7 @@ object M3uParser {
     private val schemeRegex = Regex("""^[a-zA-Z][\w+.-]*://""")
 
     fun parse(content: String): List<LiveChannel> {
-        val channelsByName = LinkedHashMap<String, LiveChannel>()
+        val channelsByKey = LinkedHashMap<String, LiveChannel>()
 
         var pendingName: String? = null
         var pendingGroup = ""
@@ -66,8 +67,9 @@ object M3uParser {
                         ?: line.substringAfterLast('/').ifBlank { line }
                     val group = pendingGroup.takeIf { it.isNotBlank() } ?: extGroup
                     val urls = urlsOf(line)
-                    val existing = channelsByName[name.lowercase()]
-                    channelsByName[name.lowercase()] = existing?.copy(
+                    val key = channelKey(name)
+                    val existing = channelsByKey[key]
+                    channelsByKey[key] = existing?.copy(
                         urls = (existing.urls + urls).distinct(),
                         logoUrl = existing.logoUrl ?: pendingLogo,
                         tvgId = existing.tvgId ?: pendingTvgId,
@@ -82,7 +84,7 @@ object M3uParser {
                 }
             }
         }
-        return channelsByName.values.toList()
+        return channelsByKey.values.toList()
     }
 
     /**

@@ -217,4 +217,44 @@ class M3uParserTest {
         assertEquals("cctv1", channels[0].tvgId)
         assertEquals("CCTV1", channels[0].name)
     }
+
+    @Test
+    fun `entries naming one station differently become the lines of a single channel`() {
+        val content = """
+            #EXTINF:-1 group-title="央视",CCTV-1 (1080p)
+            http://a/cctv1-1080
+            #EXTINF:-1 group-title="央视",CCTV-1 (720p)
+            http://a/cctv1-720
+            #EXTINF:-1 group-title="备用",CCTV1综合
+            http://b/cctv1
+        """.trimIndent()
+
+        val channels = M3uParser.parse(content)
+
+        assertEquals(1, channels.size)
+        assertEquals("CCTV-1 (1080p)", channels[0].name)
+        assertEquals("央视", channels[0].group)
+        assertEquals(
+            listOf("http://a/cctv1-1080", "http://a/cctv1-720", "http://b/cctv1"),
+            channels[0].urls,
+        )
+    }
+
+    @Test
+    fun `stations that only look alike stay apart`() {
+        val content = """
+            #EXTINF:-1,CCTV1
+            http://a/cctv1
+            #EXTINF:-1,CCTV11
+            http://a/cctv11
+            #EXTINF:-1,CCTV5+
+            http://a/cctv5plus
+            #EXTINF:-1,CCTV5
+            http://a/cctv5
+        """.trimIndent()
+
+        val channels = M3uParser.parse(content)
+
+        assertEquals(listOf("CCTV1", "CCTV11", "CCTV5+", "CCTV5"), channels.map { it.name })
+    }
 }
