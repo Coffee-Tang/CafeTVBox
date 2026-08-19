@@ -8,13 +8,19 @@ import dev.anilbeesetti.nextplayer.core.model.LiveChannel
  * Supports the common IPTV extensions: `#EXTINF` with `tvg-id`, `tvg-name`, `tvg-logo` and
  * `group-title` attributes, plus `#EXTGRP` as a fallback group. Attribute values may contain
  * commas because the channel title is taken at the first comma that sits outside quotes.
+ *
+ * Entries that share a name are folded into one channel holding every line, which is how public
+ * playlists express alternatives: they simply repeat the channel once per line, often spread over
+ * several groups. The first entry decides the name, group and position; a later entry only fills
+ * in a logo or tvg-id the first one left out.
  */
 object M3uParser {
 
     private val attributeRegex = Regex("""([\w-]+)="([^"]*)"""")
+    private val schemeRegex = Regex("""^[a-zA-Z][\w+.-]*://""")
 
     fun parse(content: String): List<LiveChannel> {
-        val channels = mutableListOf<LiveChannel>()
+        val channelsByName = LinkedHashMap<String, LiveChannel>()
 
         var pendingName: String? = null
         var pendingGroup = ""
@@ -59,9 +65,15 @@ object M3uParser {
                         ?: pendingTvgName?.takeIf { it.isNotBlank() }
                         ?: line.substringAfterLast('/').ifBlank { line }
                     val group = pendingGroup.takeIf { it.isNotBlank() } ?: extGroup
-                    channels += LiveChannel(
+                    val urls = urlsOf(line)
+                    val existing = channelsByName[name.lowercase()]
+                    channelsByName[name.lowercase()] = existing?.copy(
+                        urls = (existing.urls + urls).distinct(),
+                        logoUrl = existing.logoUrl ?: pendingLogo,
+                        tvgId = existing.tvgId ?: pendingTvgId,
+                    ) ?: LiveChannel(
                         name = name,
-                        url = line,
+                        urls = urls,
                         group = group,
                         logoUrl = pendingLogo,
                         tvgId = pendingTvgId,
@@ -70,7 +82,22 @@ object M3uParser {
                 }
             }
         }
-        return channels
+        return channelsByName.values.toList()
+    }
+
+    /**
+     * Returns the stream urls a playlist line carries.
+     *
+     * `|` separates alternative lines in the TVBox family of playlists, but Kodi-style playlists
+     * instead use it to append request headers (`http://host/x.m3u8|User-Agent=...`). Splitting
+     * only when every part after the first is itself a url keeps both readings working.
+     */
+    private fun urlsOf(line: String): List<String> {
+        if (!line.contains('|')) return listOf(line)
+        val parts = line.split('|').map(String::trim).filter(String::isNotEmpty)
+        val alternatives = parts.drop(1)
+        val allAreUrls = alternatives.isNotEmpty() && alternatives.all { schemeRegex.containsMatchIn(it) }
+        return if (allAreUrls) parts else listOf(line)
     }
 
     /**

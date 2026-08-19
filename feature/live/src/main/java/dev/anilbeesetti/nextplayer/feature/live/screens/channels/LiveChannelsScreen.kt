@@ -211,7 +211,7 @@ private fun ChannelList(
         contentPadding = PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        items(items = channels, key = { channel -> channel.url }) { channel ->
+        items(items = channels, key = { channel -> channel.name }) { channel ->
             ChannelItem(
                 channel = channel,
                 isFirstItem = channel == channels.firstOrNull(),

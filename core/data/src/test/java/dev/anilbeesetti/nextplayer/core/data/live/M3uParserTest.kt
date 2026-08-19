@@ -144,4 +144,77 @@ class M3uParserTest {
         assertEquals(1, channels.size)
         assertEquals("my_channel", channels[0].name)
     }
+
+    @Test
+    fun `pipe separated urls become alternative lines of one channel`() {
+        val content = """
+            #EXTINF:-1,CCTV1
+            http://one/x.m3u8|http://two/x.m3u8|http://three/x.m3u8
+        """.trimIndent()
+
+        val channels = M3uParser.parse(content)
+
+        assertEquals(1, channels.size)
+        assertEquals(
+            listOf("http://one/x.m3u8", "http://two/x.m3u8", "http://three/x.m3u8"),
+            channels[0].urls,
+        )
+        assertEquals("http://one/x.m3u8", channels[0].url)
+    }
+
+    @Test
+    fun `pipe carrying request headers is kept as part of the url`() {
+        val content = """
+            #EXTINF:-1,CCTV1
+            http://host/x.m3u8|User-Agent=Mozilla&Referer=http://host/
+        """.trimIndent()
+
+        val channels = M3uParser.parse(content)
+
+        assertEquals(
+            listOf("http://host/x.m3u8|User-Agent=Mozilla&Referer=http://host/"),
+            channels[0].urls,
+        )
+    }
+
+    @Test
+    fun `repeated channels are folded into one keeping playlist order`() {
+        val content = """
+            #EXTM3U
+            #EXTINF:-1 group-title="央视",CCTV1
+            http://a/cctv1
+            #EXTINF:-1 group-title="卫视",Hunan
+            http://a/hunan
+            #EXTINF:-1 group-title="高清",CCTV1
+            http://b/cctv1
+        """.trimIndent()
+
+        val channels = M3uParser.parse(content)
+
+        assertEquals(2, channels.size)
+        assertEquals("CCTV1", channels[0].name)
+        assertEquals(listOf("http://a/cctv1", "http://b/cctv1"), channels[0].urls)
+        assertEquals("央视", channels[0].group)
+        assertEquals("Hunan", channels[1].name)
+    }
+
+    @Test
+    fun `folding fills in metadata the first entry left out and drops duplicate urls`() {
+        val content = """
+            #EXTINF:-1,CCTV1
+            http://a/cctv1
+            #EXTINF:-1 tvg-id="cctv1" tvg-logo="http://logo/cctv1.png",CCTV1
+            http://a/cctv1
+            #EXTINF:-1,cctv1
+            http://c/cctv1
+        """.trimIndent()
+
+        val channels = M3uParser.parse(content)
+
+        assertEquals(1, channels.size)
+        assertEquals(listOf("http://a/cctv1", "http://c/cctv1"), channels[0].urls)
+        assertEquals("http://logo/cctv1.png", channels[0].logoUrl)
+        assertEquals("cctv1", channels[0].tvgId)
+        assertEquals("CCTV1", channels[0].name)
+    }
 }
