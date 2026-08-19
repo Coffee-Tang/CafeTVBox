@@ -125,6 +125,16 @@ class PlayerService : MediaSessionService() {
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var currentVolumeGain: Int = 0
 
+    /**
+     * A broadcast is left out: it has no position to return to, so ticking would write the same
+     * "watched live" row over and over.
+     */
+    private val progressTicker = ProgressTicker(serviceScope) {
+        mediaSession?.player?.let { player ->
+            if (!isLive(player)) rememberPlayback(player)
+        }
+    }
+
     private val playbackStateListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
@@ -306,6 +316,7 @@ class PlayerService : MediaSessionService() {
             mediaSession?.run {
                 serviceScope.launch { rememberPlayback(player) }
             }
+            progressTicker.playing(isPlaying)
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
@@ -609,6 +620,7 @@ class PlayerService : MediaSessionService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        progressTicker.playing(false)
         artworkLoadJob?.cancel()
         loudnessEnhancer?.release()
         loudnessEnhancer = null
@@ -637,10 +649,7 @@ class PlayerService : MediaSessionService() {
      */
     private suspend fun rememberPlayback(player: Player) {
         val mediaItem = player.currentMediaItem ?: return
-        // A live stream's duration is the length of its rolling window, which says nothing about
-        // how much there is to watch.
-        val isLive = player.isCurrentMediaItemLive.also { if (it) wasCurrentMediaItemLive = true } ||
-            wasCurrentMediaItemLive
+        val isLive = isLive(player)
         mediaRepository.updateMediumPlayback(
             uri = mediaItem.mediaId,
             position = if (isLive) C.TIME_UNSET else player.currentPosition,
@@ -648,6 +657,16 @@ class PlayerService : MediaSessionService() {
             duration = player.duration.takeIf { !isLive && it != C.TIME_UNSET && it > 0 },
         )
     }
+
+    /**
+     * Whether what is playing is a broadcast, remembering that it is once it has said so.
+     *
+     * A live stream's duration is the length of its rolling window, which says nothing about how
+     * much there is to watch, and its position is where the broadcast happened to be.
+     */
+    private fun isLive(player: Player): Boolean =
+        player.isCurrentMediaItemLive.also { if (it) wasCurrentMediaItemLive = true } ||
+            wasCurrentMediaItemLive
 
     private suspend fun updatedMediaItemsWithMetadata(
         mediaItems: List<MediaItem>,
