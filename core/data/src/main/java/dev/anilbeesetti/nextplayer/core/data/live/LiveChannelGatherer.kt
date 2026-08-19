@@ -52,4 +52,33 @@ class LiveChannelGatherer @Inject constructor(
             sourceCount = sources.size,
         )
     }
+
+    /**
+     * What the sources gave when they were last read, or null while none of them has given anything.
+     *
+     * Gathered and merged exactly as [invoke] does, so that the list shown while the sources are
+     * being read does not visibly rearrange itself into the list that replaces it. Sources that have
+     * given nothing yet are simply absent, which makes this a partial answer and never a failed one:
+     * nothing was attempted here, so [LiveChannels.failedSources] has nothing to report.
+     */
+    suspend fun stored(): LiveChannels? {
+        val sources = sourceRepository.getSources().first()
+        val playlists = sources.mapNotNull { source -> channelRepository.getStoredChannels(source.url) }
+        if (playlists.isEmpty()) return null
+        return LiveChannels(
+            channels = mergeChannels(playlists),
+            failedSources = emptyList(),
+            sourceCount = sources.size,
+        )
+    }
+
+    /**
+     * The station [key] names, with every line the sources carry it on, or null when none does.
+     *
+     * What the sources gave last time is enough to answer with, and answering from it is what keeps
+     * resuming a channel from waiting seconds on the sources. They are read when it has no such
+     * station, so that one added since the channel list was last refreshed is still playable.
+     */
+    suspend fun channelFor(key: String): LiveChannel? =
+        stored()?.channels?.channelForKey(key) ?: invoke().channels.channelForKey(key)
 }

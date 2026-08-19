@@ -1,8 +1,11 @@
 package dev.anilbeesetti.nextplayer.core.data
 
+import android.content.Context
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.anilbeesetti.nextplayer.core.data.repository.EpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.HttpEpgRepository
@@ -26,7 +29,20 @@ import dev.anilbeesetti.nextplayer.core.data.repository.VaultPinRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.VaultRepository
 import dev.anilbeesetti.nextplayer.core.data.security.CredentialCipher
 import dev.anilbeesetti.nextplayer.core.data.security.KeystoreCredentialCipher
+import java.io.File
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+/**
+ * The directory the playlists read from live sources are kept in between runs.
+ *
+ * Kept among the app's files rather than its cache: what they are for is a channel list that appears
+ * the moment the Live tab is opened, and a copy the system may throw out at any time would make that
+ * hold true only some of the time.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class PlaylistStore
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -96,4 +112,13 @@ interface DataModule {
     fun bindsEpgRepository(
         epgRepository: HttpEpgRepository,
     ): EpgRepository
+
+    companion object {
+
+        @Provides
+        @Singleton
+        @PlaylistStore
+        fun providesPlaylistStore(@ApplicationContext context: Context): File =
+            File(context.filesDir, "playlists")
+    }
 }

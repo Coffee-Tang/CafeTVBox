@@ -3,7 +3,6 @@ package dev.anilbeesetti.nextplayer.core.data.playback
 import android.net.Uri
 import androidx.core.net.toUri
 import dev.anilbeesetti.nextplayer.core.data.live.LiveChannelGatherer
-import dev.anilbeesetti.nextplayer.core.data.live.channelForKey
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.media.live.LiveMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkMediaKey
@@ -16,8 +15,8 @@ import javax.inject.Singleton
  *
  * Two kinds of key need work. A file on a network connection was played through a proxy URL that is
  * gone once the app restarts, so a fresh one is registered. A live channel names a station rather
- * than an address, so the configured playlists are read again to find a line it is carried on.
- * Every other key is a URI in its own right.
+ * than an address, so the configured playlists are consulted for a line it is carried on. Every
+ * other key is a URI in its own right.
  */
 @Singleton
 class PlayableMediaResolver @Inject constructor(
@@ -42,5 +41,5 @@ class PlayableMediaResolver @Inject constructor(
     }
 
     private suspend fun resolveLive(channel: LiveMediaKey): Uri? =
-        gatherLiveChannels().channels.channelForKey(channel.channelKey)?.url?.toUri()
+        gatherLiveChannels.channelFor(channel.channelKey)?.url?.toUri()
 }

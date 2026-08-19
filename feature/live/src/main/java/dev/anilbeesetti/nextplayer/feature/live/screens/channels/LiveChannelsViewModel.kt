@@ -7,12 +7,14 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.anilbeesetti.nextplayer.core.data.live.LiveChannels
 import dev.anilbeesetti.nextplayer.core.data.repository.EpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
 import dev.anilbeesetti.nextplayer.core.domain.GetLiveChannelsUseCase
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
 import dev.anilbeesetti.nextplayer.core.model.LiveProgramme
+import dev.anilbeesetti.nextplayer.core.model.LiveSource
 import dev.anilbeesetti.nextplayer.core.model.channelKey
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -57,8 +59,50 @@ data class LiveChannelsUiState(
 ) {
     val selectedChannels: List<LiveChannel>
         get() = groups.getOrNull(selectedGroupIndex)?.channels.orEmpty()
+}
 
-    val channelCount: Int get() = groups.sumOf { it.channels.size }
+/**
+ * The state to show once every source has been read.
+ *
+ * Reading gave nothing while channels are already shown means a start with no network over channels
+ * kept from an earlier run. Those are of more use than an error page, so they stay and
+ * [LiveChannelsUiState.failedSourceCount] says what happened; a reader who had picked a group keeps
+ * it as long as the new list still has one there.
+ */
+internal fun LiveChannelsUiState.afterReading(read: LiveChannels): LiveChannelsUiState {
+    val keepShown = read.channels.isEmpty() && groups.isNotEmpty()
+    val shown = if (keepShown) groups else categoryGroups(read.channels)
+    return copy(
+        groups = shown,
+        selectedGroupIndex = selectedGroupIndex.takeIf { it in shown.indices } ?: 0,
+        isLoading = false,
+        loadFailed = !keepShown && read.channels.isEmpty() && read.sourceCount > 0,
+        failedSourceCount = read.failedSources.size,
+        hasSources = read.sourceCount > 0,
+    )
+}
+
+/**
+ * The state to show once the one source being browsed has been read.
+ *
+ * Keeps what it gave in an earlier run when it cannot be reached now, for the reason the reading of
+ * every source keeps it, and counts the source as failed so that the same notice says so.
+ */
+internal fun LiveChannelsUiState.afterReading(
+    source: LiveSource,
+    read: Result<List<LiveChannel>>,
+): LiveChannelsUiState {
+    val channels = read.getOrNull()
+    val shown = channels?.let(::playlistGroups) ?: groups
+    return copy(
+        sourceName = source.name,
+        groups = shown,
+        selectedGroupIndex = selectedGroupIndex.takeIf { it in shown.indices } ?: 0,
+        isLoading = false,
+        loadFailed = channels == null && shown.isEmpty(),
+        errorMessage = read.exceptionOrNull()?.message,
+        failedSourceCount = if (channels == null && shown.isNotEmpty()) 1 else 0,
+    )
 }
 
 /**
@@ -159,18 +203,36 @@ class LiveChannelsViewModel @AssistedInject constructor(
         }
     }
 
-    private suspend fun loadEverySource(refresh: Boolean) {
-        val result = getLiveChannels(refresh)
+    /**
+     * Shows the channels the sources gave last time, while they are read again.
+     *
+     * Reading them spends seconds reaching hosts abroad, and a list that arrives that late reads as
+     * this app being slow rather than the network being slow. Not done when a refresh was asked for,
+     * which is a request to see what the sources say now and not what they said before.
+     */
+    private suspend fun showStoredChannels() {
+        val stored = getLiveChannels.stored() ?: return
         uiStateInternal.update {
             it.copy(
-                groups = categoryGroups(result.channels),
-                selectedGroupIndex = 0,
+                groups = categoryGroups(stored.channels),
                 isLoading = false,
-                loadFailed = result.channels.isEmpty() && result.sourceCount > 0,
-                failedSourceCount = result.failedSources.size,
-                hasSources = result.sourceCount > 0,
+                hasSources = stored.sourceCount > 0,
             )
         }
+    }
+
+    /** As [showStoredChannels], for the one source being browsed rather than all of them. */
+    private suspend fun showStoredChannels(source: LiveSource) {
+        val stored = channelRepository.getStoredChannels(source.url) ?: return
+        uiStateInternal.update {
+            it.copy(sourceName = source.name, groups = playlistGroups(stored), isLoading = false)
+        }
+    }
+
+    private suspend fun loadEverySource(refresh: Boolean) {
+        if (!refresh) showStoredChannels()
+        val read = getLiveChannels(refresh)
+        uiStateInternal.update { state -> state.afterReading(read) }
     }
 
     private suspend fun loadOneSource(sourceId: Long, refresh: Boolean) {
@@ -182,29 +244,9 @@ class LiveChannelsViewModel @AssistedInject constructor(
             return
         }
 
-        channelRepository.getChannels(source.url, refresh)
-            .onSuccess { channels ->
-                uiStateInternal.update {
-                    it.copy(
-                        sourceName = source.name,
-                        groups = playlistGroups(channels),
-                        selectedGroupIndex = 0,
-                        isLoading = false,
-                        loadFailed = false,
-                        errorMessage = null,
-                    )
-                }
-            }
-            .onFailure { error ->
-                uiStateInternal.update {
-                    it.copy(
-                        sourceName = source.name,
-                        isLoading = false,
-                        loadFailed = true,
-                        errorMessage = error.message,
-                    )
-                }
-            }
+        if (!refresh) showStoredChannels(source)
+        val read = channelRepository.getChannels(source.url, refresh)
+        uiStateInternal.update { state -> state.afterReading(source, read) }
     }
 
     private companion object {

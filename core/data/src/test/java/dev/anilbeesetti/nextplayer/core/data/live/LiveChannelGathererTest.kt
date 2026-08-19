@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -97,6 +98,96 @@ class LiveChannelGathererTest {
         )
     }
 
+    @Test
+    fun `stored channels are merged as read ones are, without reading a source`() = runTest {
+        val channelRepository = FakeLiveChannelRepository(
+            playlists = emptyMap(),
+            stored = mapOf(
+                "https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")),
+                "https://b/tv.m3u" to listOf(channel("CCTV-1综合", "http://b/cctv1")),
+            ),
+        )
+        val gather = LiveChannelGatherer(
+            FakeLiveSourceRepository(listOf("https://a/tv.m3u", "https://b/tv.m3u")),
+            channelRepository,
+        )
+
+        val result = gather.stored()
+
+        assertEquals(listOf("CCTV1"), result?.channels?.map { it.name })
+        assertEquals(listOf("http://a/cctv1", "http://b/cctv1"), result?.channels?.get(0)?.urls)
+        assertEquals(2, result?.sourceCount)
+        assertTrue(channelRepository.requests.isEmpty())
+    }
+
+    @Test
+    fun `a source that has stored nothing is left out rather than counted as failed`() = runTest {
+        val gather = LiveChannelGatherer(
+            FakeLiveSourceRepository(listOf("https://a/tv.m3u", "https://b/tv.m3u")),
+            FakeLiveChannelRepository(
+                playlists = emptyMap(),
+                stored = mapOf("https://b/tv.m3u" to listOf(channel("Hunan", "http://b/hunan"))),
+            ),
+        )
+
+        val result = gather.stored()
+
+        assertEquals(listOf("Hunan"), result?.channels?.map { it.name })
+        assertEquals(emptyList<LiveSource>(), result?.failedSources)
+        assertEquals(2, result?.sourceCount)
+    }
+
+    @Test
+    fun `nothing stored anywhere leaves nothing to show early`() = runTest {
+        val gather = gatherer("https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")))
+
+        assertNull(gather.stored())
+    }
+
+    @Test
+    fun `a station is found among stored channels without reading a source`() = runTest {
+        val channelRepository = FakeLiveChannelRepository(
+            playlists = mapOf("https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1"))),
+            stored = mapOf("https://a/tv.m3u" to listOf(channel("CCTV-1综合", "http://kept/cctv1"))),
+        )
+        val gather = LiveChannelGatherer(
+            FakeLiveSourceRepository(listOf("https://a/tv.m3u")),
+            channelRepository,
+        )
+
+        val found = gather.channelFor("CCTV1")
+
+        assertEquals(listOf("http://kept/cctv1"), found?.urls)
+        assertTrue(channelRepository.requests.isEmpty())
+    }
+
+    @Test
+    fun `a station the stored channels lack is looked for in the sources`() = runTest {
+        val gather = LiveChannelGatherer(
+            FakeLiveSourceRepository(listOf("https://a/tv.m3u")),
+            FakeLiveChannelRepository(
+                playlists = mapOf(
+                    "https://a/tv.m3u" to listOf(
+                        channel("CCTV1", "http://a/cctv1"),
+                        channel("CCTV5", "http://a/cctv5"),
+                    ),
+                ),
+                stored = mapOf("https://a/tv.m3u" to listOf(channel("CCTV1", "http://kept/cctv1"))),
+            ),
+        )
+
+        val found = gather.channelFor("CCTV5")
+
+        assertEquals(listOf("http://a/cctv5"), found?.urls)
+    }
+
+    @Test
+    fun `a station no source carries at all is not found`() = runTest {
+        val gather = gatherer("https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")))
+
+        assertNull(gather.channelFor("CCTV5"))
+    }
+
     private fun gatherer(vararg playlists: Pair<String, List<LiveChannel>?>) =
         LiveChannelGatherer(
             FakeLiveSourceRepository(playlists.map { it.first }),
@@ -122,6 +213,7 @@ private class FakeLiveSourceRepository(urls: List<String>) : LiveSourceRepositor
 
 private class FakeLiveChannelRepository(
     private val playlists: Map<String, List<LiveChannel>?>,
+    private val stored: Map<String, List<LiveChannel>> = emptyMap(),
 ) : LiveChannelRepository {
 
     data class Request(val url: String, val refresh: Boolean)
@@ -133,4 +225,6 @@ private class FakeLiveChannelRepository(
         return playlists[url]?.let { Result.success(it) }
             ?: Result.failure(IOException("Could not read $url"))
     }
+
+    override suspend fun getStoredChannels(url: String): List<LiveChannel>? = stored[url]
 }
