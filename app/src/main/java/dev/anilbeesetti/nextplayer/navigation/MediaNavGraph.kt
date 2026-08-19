@@ -7,7 +7,9 @@ import androidx.core.net.toUri
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import dev.anilbeesetti.nextplayer.core.media.live.LiveMediaKey
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
+import dev.anilbeesetti.nextplayer.core.model.channelKey
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_LIVE_LINES
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEY
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEYS
@@ -79,12 +81,18 @@ internal fun Context.startPlayback(
     )
 }
 
-/** Plays a broadcast, handing over every line it can be reached by to fall back on. */
+/**
+ * Plays a broadcast, handing over every line it can be reached by to fall back on.
+ *
+ * The channel is named by its station rather than by the line playback happens to start on, so that
+ * watching it again — on another line, or after a playlist was added that reorders them — goes on
+ * adding to the one entry playback history already holds for it.
+ */
 internal fun Context.startPlayback(channel: LiveChannel) {
     startPlayback(
         uri = channel.url.toUri(),
         playlist = null,
-        mediaKey = null,
+        mediaKey = LiveMediaKey(channelKey(channel.name)).toString(),
         title = channel.name,
         grantReadPermission = false,
         lines = channel.urls,

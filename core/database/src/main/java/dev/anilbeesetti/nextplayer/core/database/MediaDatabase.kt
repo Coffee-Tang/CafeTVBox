@@ -25,7 +25,7 @@ import dev.anilbeesetti.nextplayer.core.database.entities.PlaylistItemEntity
         PlaylistItemEntity::class,
         LiveSourceEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class MediaDatabase : RoomDatabase() {
@@ -328,6 +328,25 @@ abstract class MediaDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `media_state` ADD COLUMN `title` TEXT")
                 db.execSQL("ALTER TABLE `media_state` ADD COLUMN `duration` INTEGER")
+            }
+        }
+
+        /**
+         * Forgets the live channels watched before a channel had an identity of its own.
+         *
+         * They were remembered under the stream URL they happened to be watched on, which names a
+         * server rather than a station: the same channel could hold two entries told apart only by
+         * an invisible URL, and adding a playlist could start another. A station cannot be recovered
+         * from a URL, so these are dropped rather than converted, and a channel returns to history
+         * the next time it is watched. Only live streams are addressed by http, as files on the
+         * device carry a content or file URI and files on a share carry a key of their own.
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "DELETE FROM `media_state` " +
+                        "WHERE `uri` LIKE 'http://%' OR `uri` LIKE 'https://%'",
+                )
             }
         }
     }

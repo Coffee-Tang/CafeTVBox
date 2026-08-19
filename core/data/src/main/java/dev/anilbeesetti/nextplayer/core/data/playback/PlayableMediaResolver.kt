@@ -2,7 +2,10 @@ package dev.anilbeesetti.nextplayer.core.data.playback
 
 import android.net.Uri
 import androidx.core.net.toUri
+import dev.anilbeesetti.nextplayer.core.data.live.LiveChannelGatherer
+import dev.anilbeesetti.nextplayer.core.data.live.channelForKey
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
+import dev.anilbeesetti.nextplayer.core.media.live.LiveMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkMediaKey
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import javax.inject.Inject
@@ -11,17 +14,24 @@ import javax.inject.Singleton
 /**
  * Turns a stored media key back into something the player can open.
  *
- * Only files on a network connection need work: the proxy URL they were played from is gone once the
- * app restarts, so a fresh one is registered. Every other key is a URI in its own right.
+ * Two kinds of key need work. A file on a network connection was played through a proxy URL that is
+ * gone once the app restarts, so a fresh one is registered. A live channel names a station rather
+ * than an address, so the configured playlists are read again to find a line it is carried on.
+ * Every other key is a URI in its own right.
  */
 @Singleton
 class PlayableMediaResolver @Inject constructor(
     private val connectionRepository: NetworkConnectionRepository,
     private val streamingProxy: NetworkStreamingProxy,
+    private val gatherLiveChannels: LiveChannelGatherer,
 ) {
 
-    /** The URI to play [mediaKey] from, or null when the connection it names no longer exists. */
+    /**
+     * The URI to play [mediaKey] from, or null when what it names has gone: a connection that is no
+     * longer configured, or a channel no configured playlist carries any more.
+     */
     suspend fun resolve(mediaKey: String): Uri? {
+        LiveMediaKey.of(mediaKey)?.let { channel -> return resolveLive(channel) }
         val location = NetworkMediaKey.of(mediaKey) ?: return mediaKey.toUri()
         val connection = connectionRepository.getConnection(location.connectionId) ?: return null
         return streamingProxy.registerStream(
@@ -30,4 +40,7 @@ class PlayableMediaResolver @Inject constructor(
             fileName = location.fileName,
         ).toUri()
     }
+
+    private suspend fun resolveLive(channel: LiveMediaKey): Uri? =
+        gatherLiveChannels().channels.channelForKey(channel.channelKey)?.url?.toUri()
 }

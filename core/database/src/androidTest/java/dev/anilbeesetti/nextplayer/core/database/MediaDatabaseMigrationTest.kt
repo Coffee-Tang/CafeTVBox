@@ -132,6 +132,49 @@ class MediaDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate11To12_forgetsLiveChannelsAndKeepsEveryOtherKindOfItem() {
+        helper.createDatabase(TEST_DB, 11).apply {
+            listOf(
+                "content://media/external/video/media/42",
+                "file:///storage/emulated/0/Movies/holiday.mkv",
+                "cafeplayer-network://1/movies/holiday.mkv",
+                "http://192.168.1.10:4022/cctv1.m3u8",
+                "https://live.example.com/cctv2.m3u8",
+            ).forEach { uri ->
+                execSQL(
+                    "INSERT INTO media_state " +
+                        "(uri,playback_position,audio_track_index,subtitle_track_index," +
+                        "playback_speed,last_played_time,external_subs,video_scale," +
+                        "subtitle_delay,subtitle_speed,title,duration) " +
+                        "VALUES ('$uri',0,NULL,NULL,NULL,123,'',1.0,0,1.0,'Watched',NULL)",
+                )
+            }
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            12,
+            true,
+            MediaDatabase.MIGRATION_11_12,
+        ).use { db ->
+            db.query("SELECT uri FROM media_state ORDER BY uri").use { cursor ->
+                val remaining = buildList {
+                    while (cursor.moveToNext()) add(cursor.getString(0))
+                }
+                assertEquals(
+                    listOf(
+                        "cafeplayer-network://1/movies/holiday.mkv",
+                        "content://media/external/video/media/42",
+                        "file:///storage/emulated/0/Movies/holiday.mkv",
+                    ),
+                    remaining,
+                )
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

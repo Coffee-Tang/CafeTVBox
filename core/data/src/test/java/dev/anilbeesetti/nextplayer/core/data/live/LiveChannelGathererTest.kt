@@ -1,4 +1,4 @@
-package dev.anilbeesetti.nextplayer.core.domain
+package dev.anilbeesetti.nextplayer.core.data.live
 
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
@@ -12,11 +12,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class GetLiveChannelsUseCaseTest {
+class LiveChannelGathererTest {
 
     @Test
     fun `a station both sources carry is offered once with the older source first`() = runTest {
-        val useCase = useCase(
+        val gather = gatherer(
             "https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")),
             "https://b/tv.m3u" to listOf(
                 channel("CCTV-1综合", "http://b/cctv1"),
@@ -24,7 +24,7 @@ class GetLiveChannelsUseCaseTest {
             ),
         )
 
-        val result = useCase()
+        val result = gather()
 
         assertEquals(listOf("CCTV1", "Hunan"), result.channels.map { it.name })
         assertEquals(listOf("http://a/cctv1", "http://b/cctv1"), result.channels[0].urls)
@@ -34,13 +34,13 @@ class GetLiveChannelsUseCaseTest {
 
     @Test
     fun `a source that cannot be read costs only its own channels`() = runTest {
-        val useCase = useCase(
+        val gather = gatherer(
             "https://a/tv.m3u" to listOf(channel("CCTV1", "http://a/cctv1")),
             "https://broken/tv.m3u" to null,
             "https://c/tv.m3u" to listOf(channel("Hunan", "http://c/hunan")),
         )
 
-        val result = useCase()
+        val result = gather()
 
         assertEquals(listOf("CCTV1", "Hunan"), result.channels.map { it.name })
         assertEquals(listOf("https://broken/tv.m3u"), result.failedSources.map { it.url })
@@ -49,12 +49,12 @@ class GetLiveChannelsUseCaseTest {
 
     @Test
     fun `nothing is offered when every source fails`() = runTest {
-        val useCase = useCase(
+        val gather = gatherer(
             "https://a/tv.m3u" to null,
             "https://b/tv.m3u" to null,
         )
 
-        val result = useCase()
+        val result = gather()
 
         assertTrue(result.channels.isEmpty())
         assertEquals(2, result.failedSources.size)
@@ -63,7 +63,7 @@ class GetLiveChannelsUseCaseTest {
 
     @Test
     fun `no configured sources leave nothing to read`() = runTest {
-        val result = useCase()()
+        val result = gatherer()()
 
         assertTrue(result.channels.isEmpty())
         assertTrue(result.failedSources.isEmpty())
@@ -78,13 +78,13 @@ class GetLiveChannelsUseCaseTest {
                 "https://b/tv.m3u" to listOf(channel("Hunan", "http://b/hunan")),
             ),
         )
-        val useCase = GetLiveChannelsUseCase(
+        val gather = LiveChannelGatherer(
             FakeLiveSourceRepository(listOf("https://a/tv.m3u", "https://b/tv.m3u")),
             channelRepository,
         )
 
-        useCase()
-        useCase(refresh = true)
+        gather()
+        gather(refresh = true)
 
         assertEquals(
             listOf(
@@ -97,8 +97,8 @@ class GetLiveChannelsUseCaseTest {
         )
     }
 
-    private fun useCase(vararg playlists: Pair<String, List<LiveChannel>?>) =
-        GetLiveChannelsUseCase(
+    private fun gatherer(vararg playlists: Pair<String, List<LiveChannel>?>) =
+        LiveChannelGatherer(
             FakeLiveSourceRepository(playlists.map { it.first }),
             FakeLiveChannelRepository(playlists.toMap()),
         )

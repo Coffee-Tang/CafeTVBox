@@ -43,3 +43,13 @@ fun mergeChannels(
         channel.copy(urls = channel.urls.map(String::trim).distinct().take(maxLines))
     }
 }
+
+/**
+ * The channel carrying the station [key] names, or null when no configured source offers it.
+ *
+ * Playback history remembers a channel by its station key, which has to be looked up again on a
+ * later run: what the station is reachable by is whatever the sources happen to say today, and a
+ * playlist that has since been removed may have been the only one carrying it.
+ */
+fun List<LiveChannel>.channelForKey(key: String): LiveChannel? =
+    firstOrNull { channelKey(it.name) == key }

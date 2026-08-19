@@ -2,6 +2,7 @@ package dev.anilbeesetti.nextplayer.core.data.live
 
 import dev.anilbeesetti.nextplayer.core.model.LiveChannel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -167,6 +168,24 @@ class LiveChannelMergeTest {
         )
 
         assertEquals(listOf("CCTV1"), merged.map { it.name })
+    }
+
+    @Test
+    fun `a station is found again by the key its name reduces to`() {
+        val channels = mergeChannels(
+            listOf(listOf(channel("CCTV-1综合", "http://a/cctv1"), channel("湖南卫视", "http://a/hunan"))),
+        )
+
+        assertEquals("http://a/hunan", channels.channelForKey("湖南卫视")?.url)
+        assertEquals("CCTV-1综合", channels.channelForKey("CCTV1")?.name)
+    }
+
+    @Test
+    fun `a station no source carries any more is not found`() {
+        val channels = mergeChannels(listOf(listOf(channel("CCTV1", "http://a/cctv1"))))
+
+        assertNull(channels.channelForKey("CCTV5"))
+        assertNull(emptyList<LiveChannel>().channelForKey("CCTV1"))
     }
 
     private fun channel(
