@@ -190,4 +190,15 @@ class LocalMediaRepository @Inject constructor(
             ),
         )
     }
+
+    override suspend fun updateMediumLastLine(uri: String, line: String) {
+        val stateEntity = mediumStateDao.get(uri) ?: MediumStateEntity(uriString = uri)
+
+        mediumStateDao.upsert(
+            mediumState = stateEntity.copy(
+                lastLine = line,
+                lastPlayedTime = System.currentTimeMillis(),
+            ),
+        )
+    }
 }

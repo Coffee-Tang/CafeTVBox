@@ -400,6 +400,8 @@
     <string name="error_ipv6_unreachable">这个频道只通过 IPv6 播出，而当前网络没有 IPv6 连接。请换一个普通地址的频道，或先让 IPv6 可用：在路由器上开启 IPv6，并关掉会阻断 IPv6 的 VPN。</string>
     <string name="live_trying_line">正在尝试第 %1$d/%2$d 条线路…</string>
     <string name="live_no_line_reachable">这个频道的所有线路都连不上</string>
+    <string name="live_lines">线路</string>
+    <string name="live_line">线路 %1$d</string>
     <string name="preset_sources">常用源</string>
     <string name="preset_iptv_org_chinese">iptv-org · 中文频道</string>
     <string name="preset_iptv_org_chinese_description">开源列表，约 200 个中文频道。</string>

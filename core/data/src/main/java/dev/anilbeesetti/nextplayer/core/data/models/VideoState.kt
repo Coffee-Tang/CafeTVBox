@@ -12,4 +12,6 @@ data class VideoState(
     val videoScale: Float,
     val subtitleDelayMilliseconds: Long,
     val subtitleSpeed: Float,
+    /** The line a channel last played on, null for anything that is not a channel. */
+    val lastLine: String? = null,
 )

@@ -86,4 +86,9 @@ interface MediaRepository {
     suspend fun addExternalSubtitleToMedium(uri: String, subtitleUri: Uri)
     suspend fun updateSubtitleDelay(uri: String, delay: Long)
     suspend fun updateSubtitleSpeed(uri: String, speed: Float)
+
+    /**
+     * Records the line a channel came through on, so the next visit can start there.
+     */
+    suspend fun updateMediumLastLine(uri: String, line: String)
 }

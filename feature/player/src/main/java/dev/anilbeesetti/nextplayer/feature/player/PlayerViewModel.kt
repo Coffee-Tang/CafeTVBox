@@ -14,6 +14,7 @@ import dev.anilbeesetti.nextplayer.core.model.Video
 import dev.anilbeesetti.nextplayer.core.model.VideoContentScale
 import dev.anilbeesetti.nextplayer.feature.player.state.SubtitleOptionsEvent
 import dev.anilbeesetti.nextplayer.feature.player.state.VideoZoomEvent
+import dev.anilbeesetti.nextplayer.feature.player.state.linesStartingWith
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,21 @@ class PlayerViewModel @Inject constructor(
     }
 
     suspend fun getPlaylistFromUri(uri: Uri): List<Video> = getSortedPlaylistUseCase.invoke(uri)
+
+    /**
+     * The lines of a channel in the order they should be tried, the one that last played first.
+     */
+    suspend fun linesToTry(mediaKey: String?, lines: List<String>): List<String> {
+        if (mediaKey == null || lines.size < 2) return lines
+        return linesStartingWith(lines, mediaRepository.getVideoState(mediaKey)?.lastLine)
+    }
+
+    /** Records that a channel came through on [line], so the next visit can start there. */
+    fun rememberLine(mediaKey: String, line: String) {
+        viewModelScope.launch {
+            mediaRepository.updateMediumLastLine(uri = mediaKey, line = line)
+        }
+    }
 
     fun updateVideoZoom(uri: String, zoom: Float) {
         viewModelScope.launch {

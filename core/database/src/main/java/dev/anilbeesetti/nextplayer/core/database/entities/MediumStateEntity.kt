@@ -42,4 +42,12 @@ data class MediumStateEntity(
     val title: String? = null,
     @ColumnInfo(name = "duration")
     val duration: Long? = null,
+    /**
+     * The line a channel was last watched on, null for anything that is not a channel.
+     *
+     * Which of a channel's servers comes through says more about the viewer's network than about
+     * the channel, so the one that worked for them is where the next visit starts.
+     */
+    @ColumnInfo(name = "last_line")
+    val lastLine: String? = null,
 )

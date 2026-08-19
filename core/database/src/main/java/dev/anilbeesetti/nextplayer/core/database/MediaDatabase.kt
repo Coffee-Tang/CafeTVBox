@@ -25,7 +25,7 @@ import dev.anilbeesetti.nextplayer.core.database.entities.PlaylistItemEntity
         PlaylistItemEntity::class,
         LiveSourceEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class MediaDatabase : RoomDatabase() {
@@ -347,6 +347,20 @@ abstract class MediaDatabase : RoomDatabase() {
                     "DELETE FROM `media_state` " +
                         "WHERE `uri` LIKE 'http://%' OR `uri` LIKE 'https://%'",
                 )
+            }
+        }
+
+        /**
+         * Makes room for the line a channel was last watched on.
+         *
+         * A channel is carried by servers of widely differing reliability, and which of them works
+         * is a property of where the viewer is rather than of the channel, so the one that came
+         * through for them is worth returning to. Null means nothing has been watched yet, or that
+         * the item is not a channel at all.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `media_state` ADD COLUMN `last_line` TEXT")
             }
         }
     }

@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import androidx.core.util.Consumer
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,7 @@ import dev.anilbeesetti.nextplayer.feature.player.extensions.uriToSubtitleConfig
 import dev.anilbeesetti.nextplayer.feature.player.service.PlayerService
 import dev.anilbeesetti.nextplayer.feature.player.service.addSubtitleTrack
 import dev.anilbeesetti.nextplayer.feature.player.service.stopPlayerSession
+import dev.anilbeesetti.nextplayer.feature.player.state.linesStartingWith
 import dev.anilbeesetti.nextplayer.feature.player.utils.PlayerApi
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.Dispatchers
@@ -205,7 +207,7 @@ class PlayerActivity : ComponentActivity() {
 
     private fun startPlayback() {
         val uri = intent.data ?: return
-        liveLines = intent.getStringArrayListExtra(EXTRA_LIVE_LINES).orEmpty()
+        val lines = intent.getStringArrayListExtra(EXTRA_LIVE_LINES).orEmpty()
 
         val returningFromBackground = !isIntentNew && mediaController?.currentMediaItem != null
         val isNewUriTheCurrentMediaItem = mediaController?.currentMediaItem?.localConfiguration?.uri.toString() == uri.toString()
@@ -217,6 +219,8 @@ class PlayerActivity : ComponentActivity() {
                 hasExplicitPlaylist = hasExplicitPlaylist,
             )
         ) {
+            // Playback carries on where it was, so the line it is on leads the rest.
+            liveLines = linesStartingWith(lines, mediaController?.currentMediaItem?.localConfiguration?.uri?.toString())
             mediaController?.prepare()
             mediaController?.playWhenReady = viewModel.playWhenReady
             return
@@ -225,7 +229,13 @@ class PlayerActivity : ComponentActivity() {
         isIntentNew = false
 
         lifecycleScope.launch {
-            playVideo(uri)
+            // The line that last came through for this channel is worth trying before the rest.
+            val linesToTry = viewModel.linesToTry(
+                mediaKey = intent.getStringExtra(EXTRA_MEDIA_KEY),
+                lines = lines,
+            )
+            liveLines = linesToTry
+            playVideo(linesToTry.firstOrNull()?.toUri() ?: uri)
         }
     }
 

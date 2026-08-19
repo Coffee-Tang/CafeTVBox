@@ -15,10 +15,13 @@ fun BoxScope.OverlayShowView(
     player: Player,
     overlayView: OverlayView?,
     videoContentScale: VideoContentScale,
+    lineCount: Int = 0,
+    lineInUse: Int = 1,
     onDismiss: () -> Unit = {},
     onSelectSubtitleClick: () -> Unit = {},
     onSubtitleOptionEvent: (SubtitleOptionsEvent) -> Unit = {},
     onVideoContentScaleChanged: (VideoContentScale) -> Unit = {},
+    onLineClick: (Int) -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -62,6 +65,14 @@ fun BoxScope.OverlayShowView(
         show = overlayView == OverlayView.PLAYLIST,
         player = player,
     )
+
+    LiveLineSelectorView(
+        show = overlayView == OverlayView.LIVE_LINES,
+        lineCount = lineCount,
+        lineInUse = lineInUse,
+        onLineClick = onLineClick,
+        onDismiss = onDismiss,
+    )
 }
 
 val Configuration.isPortrait: Boolean
@@ -73,4 +84,5 @@ enum class OverlayView {
     PLAYBACK_SPEED,
     VIDEO_CONTENT_SCALE,
     PLAYLIST,
+    LIVE_LINES,
 }

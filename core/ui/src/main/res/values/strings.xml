@@ -425,6 +425,8 @@
     <string name="error_ipv6_unreachable">This channel is published over IPv6 only, and this network has no IPv6 connection. Pick a channel with an ordinary address, or get IPv6 working first: enable it on your router, and turn off any VPN that blocks IPv6.</string>
     <string name="live_trying_line">Trying line %1$d of %2$d…</string>
     <string name="live_no_line_reachable">No line of this channel could be reached</string>
+    <string name="live_lines">Lines</string>
+    <string name="live_line">Line %1$d</string>
     <string name="preset_sources">Common playlists</string>
     <string name="preset_iptv_org_chinese">iptv-org · Chinese channels</string>
     <string name="preset_iptv_org_chinese_description">Open-source list, around 200 Chinese-language channels.</string>

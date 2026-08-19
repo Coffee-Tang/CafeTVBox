@@ -173,7 +173,13 @@ fun MediaPlayerScreen(
         screenOrientation = playerPreferences.playerScreenOrientation,
     )
     val errorState = rememberErrorState(player = player)
-    val liveLinesState = rememberLiveLinesState(player = player, lines = liveLines)
+    val liveLinesState = rememberLiveLinesState(
+        player = player,
+        lines = liveLines,
+        onLinePlaying = { line ->
+            player.currentMediaItem?.mediaId?.let { viewModel.rememberLine(mediaKey = it, line = line) }
+        },
+    )
 
     // A line that fails outright is worth giving up on at once, without the wait a silent one needs.
     LaunchedEffect(errorState.error) {
@@ -385,6 +391,11 @@ fun MediaPlayerScreen(
                                 ControlsTopView(
                                     title = metadataState.title ?: "",
                                     isLive = mediaPresentationState.isLive,
+                                    lineCount = liveLinesState.lineCount,
+                                    onLinesClick = {
+                                        controlsVisibilityState.hideControls()
+                                        overlayView = OverlayView.LIVE_LINES
+                                    },
                                     onAudioClick = {
                                         controlsVisibilityState.hideControls()
                                         overlayView = OverlayView.AUDIO_SELECTOR
@@ -511,10 +522,13 @@ fun MediaPlayerScreen(
                 player = player,
                 overlayView = overlayView,
                 videoContentScale = videoZoomAndContentScaleState.videoContentScale,
+                lineCount = liveLinesState.lineCount,
+                lineInUse = liveLinesState.lineInUse,
                 onDismiss = { overlayView = null },
                 onSelectSubtitleClick = onSelectSubtitleClick,
                 onSubtitleOptionEvent = viewModel::onSubtitleOptionEvent,
                 onVideoContentScaleChanged = { videoZoomAndContentScaleState.onVideoContentScaleChanged(it) },
+                onLineClick = { liveLinesState.switchToLine(it) },
             )
         }
     }

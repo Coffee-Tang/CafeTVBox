@@ -175,6 +175,44 @@ class MediaDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate12To13_addsRoomForTheLastLineAndKeepsWhatHistoryHolds() {
+        helper.createDatabase(TEST_DB, 12).apply {
+            execSQL(
+                "INSERT INTO media_state " +
+                    "(uri,playback_position,audio_track_index,subtitle_track_index," +
+                    "playback_speed,last_played_time,external_subs,video_scale," +
+                    "subtitle_delay,subtitle_speed,title,duration) " +
+                    "VALUES ('cafeplayer-live://CCTV1',-9223372036854775807,NULL,NULL,NULL," +
+                    "123,'',1.0,0,1.0,'CCTV-1综合',NULL)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            13,
+            true,
+            MediaDatabase.MIGRATION_12_13,
+        ).use { db ->
+            db.query("SELECT * FROM media_state WHERE uri = 'cafeplayer-live://CCTV1'").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("CCTV-1综合", cursor.getString(cursor.getColumnIndexOrThrow("title")))
+                assertEquals(123L, cursor.getLong(cursor.getColumnIndexOrThrow("last_played_time")))
+                check(cursor.isNull(cursor.getColumnIndexOrThrow("last_line")))
+            }
+
+            db.execSQL(
+                "UPDATE media_state SET last_line = 'http://192.168.1.10:4022/cctv1.m3u8' " +
+                    "WHERE uri = 'cafeplayer-live://CCTV1'",
+            )
+            db.query("SELECT last_line FROM media_state WHERE uri = 'cafeplayer-live://CCTV1'").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("http://192.168.1.10:4022/cctv1.m3u8", cursor.getString(0))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }
