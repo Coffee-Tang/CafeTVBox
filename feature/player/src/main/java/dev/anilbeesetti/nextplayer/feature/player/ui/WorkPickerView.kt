@@ -34,11 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.nativeKeyCode
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -61,9 +57,6 @@ import dev.anilbeesetti.nextplayer.feature.player.state.rememberPlaylistState
 
 class WorkPickerKeySink {
     var onKeyCode: (keyCode: Int, isDown: Boolean) -> Boolean = { _, _ -> false }
-
-    fun onComposeKey(event: KeyEvent): Boolean =
-        onKeyCode(event.key.nativeKeyCode, event.type == KeyEventType.KeyDown)
 }
 
 @OptIn(UnstableApi::class)

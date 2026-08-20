@@ -53,12 +53,7 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -421,35 +416,7 @@ fun MediaPlayerScreen(
             Box(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(Color.Black)
-                    .then(
-                        if (isTv) {
-                            Modifier
-                                .focusProperties { canFocus = false }
-                                .onPreviewKeyEvent { keyEvent ->
-                                    when {
-                                        overlayView == OverlayView.WORK_PICKER -> {
-                                            workPickerKeys.onComposeKey(keyEvent)
-                                        }
-                                        overlayView != null -> false
-                                        player == null -> false
-                                        else -> handlePlayerKeyEvent(
-                                            keyEvent = keyEvent,
-                                            player = player,
-                                            controls = controlsVisibilityState,
-                                            seekIncrementMs = seekIncrementMs,
-                                            isPlayPauseFocused = isPlayPauseFocused,
-                                            onDpadSeek = showDpadSeekFeedback,
-                                            onOpenWorkPicker = workId?.let {
-                                                { overlayView = OverlayView.WORK_PICKER }
-                                            },
-                                        )
-                                    }
-                                }
-                        } else {
-                            Modifier
-                        },
-                    ),
+                    .background(Color.Black),
             ) {
                 PlayerContentFrame(
                     player = player,
@@ -891,141 +858,6 @@ fun ControlsMiddleView(
 
 private class PlayerKeyDispatch {
     var handle: (android.view.KeyEvent) -> Boolean = { false }
-}
-
-@OptIn(UnstableApi::class)
-private fun handlePlayerKeyEvent(
-    keyEvent: KeyEvent,
-    player: Player,
-    controls: ControlsVisibilityState,
-    seekIncrementMs: Long,
-    isPlayPauseFocused: Boolean,
-    onDpadSeek: (deltaMs: Long) -> Unit,
-    onOpenWorkPicker: (() -> Unit)? = null,
-): Boolean {
-    if (keyEvent.key == Key.Back && !controls.controlsLocked) {
-        if (!controls.controlsVisible) return false // controls already hidden: let BACK exit
-        if (keyEvent.type == KeyEventType.KeyUp) controls.hideControls()
-        return true
-    }
-    if (keyEvent.type != KeyEventType.KeyDown) return false
-    if (controls.controlsLocked) {
-        return when (keyEvent.key) {
-            Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-                if (controls.controlsVisible) controls.unlockControls() else controls.showControls()
-                true
-            }
-            else -> {
-                controls.showControls()
-                false
-            }
-        }
-    }
-
-    fun seekBy(deltaMs: Long) {
-        val duration = player.duration
-        val target = (player.currentPosition + deltaMs).coerceAtLeast(0)
-        player.seekTo(if (duration > 0) target.coerceAtMost(duration) else target)
-    }
-
-    fun togglePlayPause() {
-        if (player.isPlaying) player.pause() else player.play()
-    }
-
-    return when (keyEvent.key) {
-        Key.MediaPlayPause, Key.Spacebar -> {
-            togglePlayPause()
-            controls.showControls()
-            true
-        }
-        Key.MediaPlay -> {
-            player.play()
-            controls.showControls()
-            true
-        }
-        Key.MediaPause -> {
-            player.pause()
-            controls.showControls()
-            true
-        }
-        Key.MediaFastForward -> {
-            seekBy(seekIncrementMs)
-            controls.showControls()
-            true
-        }
-        Key.MediaRewind -> {
-            seekBy(-seekIncrementMs)
-            controls.showControls()
-            true
-        }
-        Key.MediaNext -> {
-            player.seekToNext()
-            controls.showControls()
-            true
-        }
-        Key.MediaPrevious -> {
-            player.seekToPrevious()
-            controls.showControls()
-            true
-        }
-        Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
-            when {
-                !controls.controlsVisible -> {
-                    togglePlayPause()
-                    true
-                }
-                isPlayPauseFocused -> {
-                    togglePlayPause()
-                    controls.showControls()
-                    true
-                }
-                else -> false
-            }
-        }
-        Key.DirectionLeft -> {
-            if (!controls.controlsVisible) {
-                seekBy(-seekIncrementMs)
-                onDpadSeek(-seekIncrementMs)
-                true
-            } else {
-                controls.showControls()
-                false
-            }
-        }
-        Key.DirectionRight -> {
-            if (!controls.controlsVisible) {
-                seekBy(seekIncrementMs)
-                onDpadSeek(seekIncrementMs)
-                true
-            } else {
-                controls.showControls()
-                false
-            }
-        }
-        Key.DirectionUp -> {
-            if (!controls.controlsVisible) {
-                controls.showControls()
-                true
-            } else {
-                controls.showControls()
-                false
-            }
-        }
-        Key.DirectionDown -> {
-            if (!controls.controlsVisible) {
-                if (shouldOpenWorkPickerOnDown(controlsVisible = false, hasWork = onOpenWorkPicker != null)) {
-                    onOpenWorkPicker?.invoke()
-                } else {
-                    controls.showControls()
-                }
-                true
-            } else {
-                controls.showControls()
-                false
-            }
-        }
-        else -> false
-    }
 }
 
 @Composable

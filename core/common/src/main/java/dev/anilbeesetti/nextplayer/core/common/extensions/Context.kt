@@ -5,7 +5,6 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Bitmap
@@ -341,45 +340,6 @@ private fun Context.convertNetworkUriToUTF8(url: URL, sourceCharset: Charset): U
     }
 
     return Uri.fromFile(file)
-}
-
-fun Context.isDeviceTvBox(): Boolean {
-    val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-    if (uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) {
-        return true
-    }
-
-    // Fire tv
-    if (packageManager.hasSystemFeature("amazon.hardware.fire_tv")) {
-        return true
-    }
-
-    // Missing Files app (DocumentsUI) means box (some boxes still have non functional app or stub)
-    if (!hasStorageAccessFrameworkChooser()) {
-        return true
-    }
-
-    if (Build.VERSION.SDK_INT < 30) {
-        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
-            return true
-        }
-
-        if (packageManager.hasSystemFeature("android.hardware.hdmi.cec")) {
-            return true
-        }
-
-        if (Build.MANUFACTURER.equals("zidoo", ignoreCase = true)) {
-            return true
-        }
-    }
-    return false
-}
-
-fun Context.hasStorageAccessFrameworkChooser(): Boolean {
-    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-    intent.addCategory(Intent.CATEGORY_OPENABLE)
-    intent.type = "video/*"
-    return intent.resolveActivity(packageManager) != null
 }
 
 fun Context.pxToDp(px: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, px, resources.displayMetrics)
