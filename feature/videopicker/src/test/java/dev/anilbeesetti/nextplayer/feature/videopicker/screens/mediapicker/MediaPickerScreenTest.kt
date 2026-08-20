@@ -106,4 +106,26 @@ class MediaPickerScreenTest {
         assertFalse(selectionManager.isInSelectionMode)
         assertTrue(selectionManager.selectionItems.isEmpty())
     }
+
+    @Test
+    fun emptyLibraryCtaOpensNetwork() {
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(application).grantPermissions(Manifest.permission.READ_MEDIA_VIDEO)
+        val actions = mutableListOf<MediaPickerAction>()
+        val browseNetwork = ApplicationProvider.getApplicationContext<android.content.Context>()
+            .getString(R.string.library_empty_action)
+
+        composeRule.setContent {
+            NextPlayerTheme {
+                MediaPickerScreen(
+                    uiState = MediaPickerUiState(folderName = null, hasLibraries = false),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(browseNetwork).assertIsDisplayed()
+        composeRule.onNodeWithText(browseNetwork).performClick()
+        assertTrue(MediaPickerAction.OnOpenNetwork in actions)
+    }
 }

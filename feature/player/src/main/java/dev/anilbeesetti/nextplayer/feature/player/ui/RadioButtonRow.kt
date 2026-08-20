@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 
 @Composable
 fun RadioButtonRow(
@@ -26,6 +27,7 @@ fun RadioButtonRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .tvFocusRing(shape = RoundedCornerShape(4.dp))
             .clip(RoundedCornerShape(4.dp))
             .selectable(
                 selected = selected,

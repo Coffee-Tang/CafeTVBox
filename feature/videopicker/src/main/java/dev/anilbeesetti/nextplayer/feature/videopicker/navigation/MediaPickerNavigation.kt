@@ -23,12 +23,14 @@ fun EntryProviderScope<NavKey>.mediaPickerEntry(
     onNavigateUp: () -> Unit,
     onPlayVideo: (uri: Uri) -> Unit,
     onPlayVideos: (uris: List<Uri>) -> Unit,
-    onResumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
+    onResumeWatching: (media: PlayableMedia, mediaKey: String, title: String, workId: Long?) -> Unit,
     onWatchHistoryClick: () -> Unit,
     onFolderClick: (folderPath: String) -> Unit,
     onSettingsClick: () -> Unit,
     onSearchClick: () -> Unit,
     onVaultClick: () -> Unit,
+    onOpenNetwork: () -> Unit,
+    onPlayWork: (media: PlayableMedia, mediaKey: String, title: String, workId: Long) -> Unit,
 ) {
     entry<MediaPickerRoute> { key ->
         MediaPickerRoute(
@@ -48,6 +50,8 @@ fun EntryProviderScope<NavKey>.mediaPickerEntry(
                             openSettings = onSettingsClick,
                             openSearch = onSearchClick,
                             openVault = onVaultClick,
+                            openNetwork = onOpenNetwork,
+                            playWork = onPlayWork,
                         ),
                     )
                 },

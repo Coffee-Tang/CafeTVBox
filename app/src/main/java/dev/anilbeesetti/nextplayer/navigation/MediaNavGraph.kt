@@ -15,6 +15,8 @@ import dev.anilbeesetti.nextplayer.feature.player.EXTRA_LIVE_LINES
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEY
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_KEYS
 import dev.anilbeesetti.nextplayer.feature.player.EXTRA_MEDIA_TITLE
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_OPEN_WORK_PICKER
+import dev.anilbeesetti.nextplayer.feature.player.EXTRA_WORK_ID
 import dev.anilbeesetti.nextplayer.feature.player.PlayerActivity
 import dev.anilbeesetti.nextplayer.feature.player.utils.PlayerApi
 import dev.anilbeesetti.nextplayer.feature.videopicker.navigation.mediaPickerEntry
@@ -30,31 +32,49 @@ import dev.anilbeesetti.nextplayer.settings.navigation.navigateToSettings
 fun EntryProviderScope<NavKey>.mediaNavGraph(
     context: Context,
     backStack: NavBackStack<NavKey>,
+    onOpenNetwork: () -> Unit,
 ) {
     mediaPickerEntry(
         onNavigateUp = { backStack.removeLastIfNotRoot() },
         onPlayVideo = { uri -> context.startPlayback(uri) },
         onPlayVideos = { uris -> context.startPlayback(uris) },
-        onResumeWatching = { media, mediaKey, title ->
-            context.startPlayback(media, mediaKey = mediaKey, title = title)
+        onResumeWatching = { media, mediaKey, title, workId ->
+            context.startPlayback(media, mediaKey = mediaKey, title = title, workId = workId)
         },
         onWatchHistoryClick = backStack::navigateToWatchHistory,
         onFolderClick = backStack::navigateToMediaPickerScreen,
         onSettingsClick = backStack::navigateToSettings,
         onSearchClick = backStack::navigateToSearch,
         onVaultClick = backStack::navigateToVault,
+        onOpenNetwork = onOpenNetwork,
+        onPlayWork = { media, mediaKey, title, workId ->
+            context.startPlayback(
+                media,
+                mediaKey = mediaKey,
+                title = title,
+                workId = workId,
+                openWorkPicker = true,
+            )
+        },
     )
 
     searchEntry(
         onNavigateUp = { backStack.removeLastIfNotRoot() },
         onPlayVideo = { uri -> context.startPlayback(uri) },
         onFolderClick = backStack::navigateToMediaPickerScreen,
+        onPlayWork = { media, mediaKey, title, workId ->
+            context.startPlayback(media, mediaKey = mediaKey, title = title, workId = workId)
+        },
+        onResumeWatching = { media, mediaKey, title, workId ->
+            context.startPlayback(media, mediaKey = mediaKey, title = title, workId = workId)
+        },
+        onPlayChannel = { channel -> context.startPlayback(channel) },
     )
 
     watchHistoryEntry(
         onNavigateUp = { backStack.removeLastIfNotRoot() },
-        onResumeWatching = { media, mediaKey, title ->
-            context.startPlayback(media, mediaKey = mediaKey, title = title)
+        onResumeWatching = { media, mediaKey, title, workId ->
+            context.startPlayback(media, mediaKey = mediaKey, title = title, workId = workId)
         },
     )
 
@@ -78,6 +98,8 @@ internal fun Context.startPlayback(
     media: PlayableMedia,
     mediaKey: String? = null,
     title: String? = null,
+    workId: Long? = null,
+    openWorkPicker: Boolean = false,
 ) {
     startPlayback(
         uri = media.uri,
@@ -86,6 +108,8 @@ internal fun Context.startPlayback(
         title = title,
         grantReadPermission = false,
         lines = media.lines,
+        workId = workId,
+        openWorkPicker = openWorkPicker,
     )
 }
 
@@ -162,6 +186,8 @@ private fun Context.startPlayback(
     grantReadPermission: Boolean,
     mediaKeys: List<String>? = null,
     lines: List<String>? = null,
+    workId: Long? = null,
+    openWorkPicker: Boolean = false,
 ) {
     if (grantReadPermission) {
         (playlist ?: listOf(uri)).forEach {
@@ -176,6 +202,8 @@ private fun Context.startPlayback(
         mediaKeys?.let { putStringArrayListExtra(EXTRA_MEDIA_KEYS, ArrayList(it)) }
         lines?.takeIf { it.size > 1 }?.let { putStringArrayListExtra(EXTRA_LIVE_LINES, ArrayList(it)) }
         title?.let { putExtra(EXTRA_MEDIA_TITLE, it) }
+        workId?.let { putExtra(EXTRA_WORK_ID, it) }
+        if (openWorkPicker) putExtra(EXTRA_OPEN_WORK_PICKER, true)
         if (grantReadPermission) addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     startActivity(intent)

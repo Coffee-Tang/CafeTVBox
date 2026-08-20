@@ -6,6 +6,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -58,7 +59,7 @@ fun BoxScope.OverlayView(
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(show) {
         if (show && isTv) {
-            focusRequester.requestFocusUntilLanded(attempts = 5)
+            focusRequester.requestFocusUntilLanded(attempts = 20)
         }
     }
 
@@ -93,6 +94,7 @@ fun BoxScope.OverlayView(
                 modifier = Modifier
                     .focusRequester(focusRequester)
                     .focusGroup()
+                    .focusable()
                     .padding(top = 24.dp)
                     .padding(end = endPadding),
             ) {

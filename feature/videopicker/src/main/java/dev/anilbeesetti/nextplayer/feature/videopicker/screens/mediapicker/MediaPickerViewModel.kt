@@ -19,6 +19,7 @@ import dev.anilbeesetti.nextplayer.core.common.service.system.SystemService
 import dev.anilbeesetti.nextplayer.core.common.storagePermission
 import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMedia
 import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMediaResolver
+import dev.anilbeesetti.nextplayer.core.data.repository.CatalogueRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PlaylistRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
@@ -36,6 +37,7 @@ import dev.anilbeesetti.nextplayer.core.media.services.TransferResult
 import dev.anilbeesetti.nextplayer.core.media.sync.MediaSynchronizer
 import dev.anilbeesetti.nextplayer.core.model.ApplicationPreferences
 import dev.anilbeesetti.nextplayer.core.model.Folder
+import dev.anilbeesetti.nextplayer.core.model.LibraryWork
 import dev.anilbeesetti.nextplayer.core.model.MediaViewMode
 import dev.anilbeesetti.nextplayer.core.model.PlaylistSummary
 import dev.anilbeesetti.nextplayer.core.model.RecentMedium
@@ -60,6 +62,7 @@ class MediaPickerViewModel @AssistedInject constructor(
     private val getSortedVideosUseCase: GetSortedVideosUseCase,
     private val mediaOperationsService: MediaOperationsService,
     private val mediaRepository: MediaRepository,
+    private val catalogueRepository: CatalogueRepository,
     private val playableMediaResolver: PlayableMediaResolver,
     private val playlistRepository: PlaylistRepository,
     private val preferencesRepository: PreferencesRepository,
@@ -79,13 +82,15 @@ class MediaPickerViewModel @AssistedInject constructor(
     data class Output(
         val navigateUp: () -> Unit,
         val playVideo: (Uri) -> Unit,
-        val resumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
+        val resumeWatching: (media: PlayableMedia, mediaKey: String, title: String, workId: Long?) -> Unit,
         val openWatchHistory: () -> Unit,
         val playVideos: (List<Uri>) -> Unit,
         val openFolder: (String) -> Unit,
         val openSettings: () -> Unit,
         val openSearch: () -> Unit,
         val openVault: () -> Unit,
+        val openNetwork: () -> Unit,
+        val playWork: (media: PlayableMedia, mediaKey: String, title: String, workId: Long) -> Unit,
     )
 
     @AssistedFactory
@@ -116,7 +121,11 @@ class MediaPickerViewModel @AssistedInject constructor(
         collectPreferences()
         collectPlaylists()
         // History spans every kind of source, so it belongs to the root screen rather than a folder.
-        if (folderPath == null) collectRecentlyPlayed()
+        if (folderPath == null) {
+            collectRecentlyPlayed()
+            collectCatalogue()
+            viewModelScope.launch { catalogueRepository.reconcile() }
+        }
     }
 
     fun onAction(action: MediaPickerAction) {
@@ -124,11 +133,13 @@ class MediaPickerViewModel @AssistedInject constructor(
             MediaPickerAction.OnNavigateUpClick -> output.navigateUp()
             is MediaPickerAction.OnPlayVideo -> output.playVideo(action.uri)
             is MediaPickerAction.OnResumeWatching -> resumeWatching(action.medium)
+            is MediaPickerAction.OnPlayWork -> playWork(action.work)
             MediaPickerAction.OnWatchHistoryClick -> output.openWatchHistory()
             is MediaPickerAction.OnFolderClick -> output.openFolder(action.folderPath)
             MediaPickerAction.OnSettingsClick -> output.openSettings()
             MediaPickerAction.OnSearchClick -> output.openSearch()
             MediaPickerAction.OnVaultClick -> output.openVault()
+            MediaPickerAction.OnOpenNetwork -> output.openNetwork()
             is MediaPickerAction.Refresh -> refresh()
             is MediaPickerAction.RenameVideo -> renameVideo(action.uri, action.to)
             is MediaPickerAction.UpdateMenu -> updateMenu(action.preferences)
@@ -227,7 +238,35 @@ class MediaPickerViewModel @AssistedInject constructor(
                 )
                 return@launch
             }
-            output.resumeWatching(playable, medium.mediaKey, medium.title)
+            output.resumeWatching(playable, medium.mediaKey, medium.title, medium.workId)
+        }
+    }
+
+    private fun collectCatalogue() {
+        viewModelScope.launch {
+            catalogueRepository.observeLibrariesExist().collect { exists ->
+                uiStateInternal.update { it.copy(hasLibraries = exists) }
+            }
+        }
+        viewModelScope.launch {
+            catalogueRepository.observeWorks().collect { works ->
+                uiStateInternal.update { it.copy(works = works) }
+            }
+        }
+    }
+
+    private fun playWork(work: LibraryWork) {
+        viewModelScope.launch {
+            val mediaKey = catalogueRepository.keyToResume(work.id) ?: return@launch
+            val playable = playableMediaResolver.resolve(mediaKey)
+            if (playable == null) {
+                systemService.showToast(
+                    text = systemService.getString(R.string.error_playback_source_unavailable),
+                    duration = Toast.LENGTH_SHORT,
+                )
+                return@launch
+            }
+            output.playWork(playable, mediaKey, work.title, work.id)
         }
     }
 
@@ -556,6 +595,8 @@ data class MediaPickerUiState(
     /** Films and episodes to pick up again, and the channels last watched, each newest first. */
     val continueWatching: List<RecentMedium> = emptyList(),
     val recentLive: List<RecentMedium> = emptyList(),
+    val hasLibraries: Boolean = false,
+    val works: List<LibraryWork> = emptyList(),
     val mediaDataState: DataState<MediaHolder?> = DataState.Loading,
     val preferences: ApplicationPreferences = ApplicationPreferences(),
     val mediaInfo: dev.anilbeesetti.nextplayer.core.model.MediaInfo? = null,
@@ -591,11 +632,13 @@ sealed interface MediaPickerAction {
     data object OnNavigateUpClick : MediaPickerAction
     data class OnPlayVideo(val uri: Uri) : MediaPickerAction
     data class OnResumeWatching(val medium: RecentMedium) : MediaPickerAction
+    data class OnPlayWork(val work: LibraryWork) : MediaPickerAction
     data object OnWatchHistoryClick : MediaPickerAction
     data class OnFolderClick(val folderPath: String) : MediaPickerAction
     data object OnSettingsClick : MediaPickerAction
     data object OnSearchClick : MediaPickerAction
     data object OnVaultClick : MediaPickerAction
+    data object OnOpenNetwork : MediaPickerAction
     data object Refresh : MediaPickerAction
     data class RenameVideo(val uri: Uri, val to: String) : MediaPickerAction
     data class UpdateMenu(val preferences: ApplicationPreferences) : MediaPickerAction

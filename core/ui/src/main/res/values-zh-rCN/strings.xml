@@ -263,6 +263,7 @@
     <string name="reset_settings_confirmation">您确定想要重置所有设置为默认状态吗？</string>
     <string name="reset">重置</string>
     <string name="search_videos_and_folders">搜索视频和文件夹</string>
+    <string name="search_everything">搜索作品、频道和文件</string>
     <string name="search">搜索</string>
     <string name="no_results_found">未找到结果</string>
     <string name="unknown">未知</string>
@@ -427,6 +428,17 @@
     <string name="continue_watching">继续观看</string>
     <string name="recent_live">最近直播</string>
     <string name="see_all">查看全部</string>
+    <string name="set_as_library">设为影视库</string>
+    <string name="library_kind_title">这个文件夹里是？</string>
+    <string name="library_kind_series">剧集</string>
+    <string name="library_kind_film">电影</string>
+    <string name="library_empty_title">还没有影视库</string>
+    <string name="library_empty_description">到网络共享里打开一个文件夹，把它设为影视库。</string>
+    <string name="library_empty_action">去网络浏览</string>
+    <string name="season_number">第 %d 季</string>
+    <string name="episode_number">第 %d 集</string>
+    <string name="season_episode">第 %1$d 季 第 %2$d 集</string>
+    <string name="episode_count">%d 集</string>
     <string name="watch_history">播放记录</string>
     <string name="watched_up_to">%1$s / %2$s</string>
     <string name="remove_from_watch_history">从记录中删除</string>
@@ -438,7 +450,6 @@
     <string name="media_source_local">本机</string>
     <string name="media_source_share">网络共享</string>
     <string name="media_source_stream">网络直播</string>
-    <string name="media_source_url">在线视频</string>
     <string name="error_playback_source_unavailable">这一项的来源已经不存在了</string>
     <string name="authentication">身份验证</string>
     <string name="ssh_key">SSH 密钥</string>

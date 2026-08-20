@@ -1,14 +1,18 @@
 package dev.anilbeesetti.nextplayer.feature.network.screens.browse
 
+import dev.anilbeesetti.nextplayer.core.data.repository.CatalogueRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.media.network.CredentialsRejected
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClientFactory
 import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProxy
 import dev.anilbeesetti.nextplayer.core.media.network.sftp.HostKeyMismatch
+import dev.anilbeesetti.nextplayer.core.model.LibraryWork
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
 import dev.anilbeesetti.nextplayer.core.model.NetworkFile
 import dev.anilbeesetti.nextplayer.core.model.NetworkProtocol
+import dev.anilbeesetti.nextplayer.core.model.WorkDetail
+import dev.anilbeesetti.nextplayer.core.model.WorkKind
 import dev.anilbeesetti.nextplayer.feature.network.MainDispatcherRule
 import java.io.IOException
 import java.io.InputStream
@@ -88,6 +92,7 @@ class NetworkBrowseViewModelTest {
                 repository = FakeRepository(connection().copy(credentialsUnreadable = true)),
                 streamingProxy = NetworkStreamingProxy(factory),
                 clientFactory = factory,
+                catalogueRepository = FakeCatalogueRepository(),
             )
 
             advanceUntilIdle()
@@ -136,6 +141,7 @@ class NetworkBrowseViewModelTest {
             repository = FakeRepository(connection()),
             streamingProxy = NetworkStreamingProxy(factory),
             clientFactory = factory,
+            catalogueRepository = FakeCatalogueRepository(),
         )
     }
 
@@ -185,4 +191,19 @@ private class FakeNetworkClient(
     override suspend fun fileSize(path: String): Long = error("Not used")
 
     override suspend fun openStream(path: String, offset: Long): InputStream = error("Not used")
+}
+
+private class FakeCatalogueRepository : CatalogueRepository {
+    override fun observeLibrariesExist(): Flow<Boolean> = flowOf(false)
+    override fun observeWorks(): Flow<List<LibraryWork>> = flowOf(emptyList())
+    override fun observeWork(workId: Long): Flow<WorkDetail?> = flowOf(null)
+    override suspend fun addLibraryAndScan(
+        name: String,
+        root: String,
+        kind: WorkKind,
+        connectionId: Long,
+    ): Result<Unit> = Result.success(Unit)
+    override suspend fun reconcile() = Unit
+    override suspend fun keyToResume(workId: Long): String? = null
+    override suspend fun playableKey(itemId: Long): String? = null
 }

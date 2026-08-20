@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.media3.common.Player
 import dev.anilbeesetti.nextplayer.core.model.VideoContentScale
+import dev.anilbeesetti.nextplayer.feature.player.PlayerViewModel
 import dev.anilbeesetti.nextplayer.feature.player.extensions.noRippleClickable
 import dev.anilbeesetti.nextplayer.feature.player.state.SubtitleOptionsEvent
 
@@ -22,18 +24,18 @@ fun BoxScope.OverlayShowView(
     onSubtitleOptionEvent: (SubtitleOptionsEvent) -> Unit = {},
     onVideoContentScaleChanged: (VideoContentScale) -> Unit = {},
     onLineClick: (Int) -> Unit = {},
+    workId: Long? = null,
+    viewModel: PlayerViewModel? = null,
+    workPickerKeys: WorkPickerKeySink? = null,
 ) {
-    Box(
-        modifier = Modifier
-            .matchParentSize()
-            .then(
-                if (overlayView != null) {
-                    Modifier.noRippleClickable(onClick = onDismiss)
-                } else {
-                    Modifier
-                },
-            ),
-    )
+    if (overlayView != null) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .noRippleClickable(onClick = onDismiss)
+                .focusProperties { canFocus = false },
+        )
+    }
 
     AudioTrackSelectorView(
         show = overlayView == OverlayView.AUDIO_SELECTOR,
@@ -73,6 +75,17 @@ fun BoxScope.OverlayShowView(
         onLineClick = onLineClick,
         onDismiss = onDismiss,
     )
+
+    if (workId != null && viewModel != null) {
+        WorkPickerView(
+            show = overlayView == OverlayView.WORK_PICKER,
+            workId = workId,
+            player = player,
+            viewModel = viewModel,
+            onDismiss = onDismiss,
+            keySink = workPickerKeys,
+        )
+    }
 }
 
 val Configuration.isPortrait: Boolean
@@ -85,4 +98,5 @@ enum class OverlayView {
     VIDEO_CONTENT_SCALE,
     PLAYLIST,
     LIVE_LINES,
+    WORK_PICKER,
 }

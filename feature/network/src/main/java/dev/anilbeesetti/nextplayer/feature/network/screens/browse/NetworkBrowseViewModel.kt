@@ -8,6 +8,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.anilbeesetti.nextplayer.core.data.repository.CatalogueRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.NetworkConnectionRepository
 import dev.anilbeesetti.nextplayer.core.media.network.CredentialsRejected
 import dev.anilbeesetti.nextplayer.core.media.network.NetworkClient
@@ -19,6 +20,7 @@ import dev.anilbeesetti.nextplayer.core.media.network.proxy.NetworkStreamingProx
 import dev.anilbeesetti.nextplayer.core.media.network.sftp.HostKeyMismatch
 import dev.anilbeesetti.nextplayer.core.model.NetworkConnection
 import dev.anilbeesetti.nextplayer.core.model.NetworkFile
+import dev.anilbeesetti.nextplayer.core.model.WorkKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -74,6 +76,7 @@ class NetworkBrowseViewModel @AssistedInject constructor(
     private val repository: NetworkConnectionRepository,
     private val streamingProxy: NetworkStreamingProxy,
     private val clientFactory: NetworkClientFactory,
+    private val catalogueRepository: CatalogueRepository,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -161,6 +164,19 @@ class NetworkBrowseViewModel @AssistedInject constructor(
     /** Root folder shows the connection name; nested folders show the last path segment. */
     private fun title(conn: NetworkConnection): String =
         path?.trimEnd('/')?.substringAfterLast('/')?.takeIf { it.isNotEmpty() } ?: conn.name
+
+    fun addAsLibrary(kind: WorkKind) {
+        val path = currentPath ?: return
+        val name = _uiState.value.title.ifBlank { path.substringAfterLast('/') }
+        viewModelScope.launch {
+            catalogueRepository.addLibraryAndScan(
+                name = name,
+                root = path,
+                kind = kind,
+                connectionId = connectionId,
+            )
+        }
+    }
 
     fun retry() {
         if (currentPath == null || client?.isConnected() != true) connectAndLoad() else loadCurrent()

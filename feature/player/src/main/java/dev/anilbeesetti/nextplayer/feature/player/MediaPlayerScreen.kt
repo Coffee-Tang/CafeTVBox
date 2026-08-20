@@ -2,6 +2,7 @@ package dev.anilbeesetti.nextplayer.feature.player
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -34,7 +35,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -57,6 +60,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -70,6 +74,8 @@ import androidx.media3.common.util.UnstableApi
 import dev.anilbeesetti.nextplayer.core.common.extensions.isTelevision
 import dev.anilbeesetti.nextplayer.core.model.ControlButtonsPosition
 import dev.anilbeesetti.nextplayer.core.model.PlayerPreferences
+import dev.anilbeesetti.nextplayer.core.model.WorkPickerDirection
+import dev.anilbeesetti.nextplayer.core.model.shouldOpenWorkPickerOnDown
 import dev.anilbeesetti.nextplayer.core.ui.R as coreUiR
 import dev.anilbeesetti.nextplayer.core.ui.components.requestFocusUntilLanded
 import dev.anilbeesetti.nextplayer.core.ui.components.thenIf
@@ -107,8 +113,21 @@ import dev.anilbeesetti.nextplayer.feature.player.ui.OverlayShowView
 import dev.anilbeesetti.nextplayer.feature.player.ui.OverlayView
 import dev.anilbeesetti.nextplayer.feature.player.ui.SubtitleConfiguration
 import dev.anilbeesetti.nextplayer.feature.player.ui.VerticalProgressView
+import dev.anilbeesetti.nextplayer.feature.player.ui.WorkPickerKeySink
 import dev.anilbeesetti.nextplayer.feature.player.ui.controls.ControlsBottomView
 import dev.anilbeesetti.nextplayer.feature.player.ui.controls.ControlsTopView
+import dev.anilbeesetti.nextplayer.feature.player.ui.isBackKey
+import dev.anilbeesetti.nextplayer.feature.player.ui.isWorkPickerConfirmKey
+import dev.anilbeesetti.nextplayer.feature.player.ui.isWorkPickerHandledKey
+import dev.anilbeesetti.nextplayer.feature.player.ui.setDescendantSurfaceFocusable
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldDisableSurfaceFocus
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldDismissOverlayOnBack
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldForwardChromeKeys
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldHandleHiddenPlayerKey
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldHideControlsOnBack
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldShowControlScrim
+import dev.anilbeesetti.nextplayer.feature.player.ui.shouldSwallowDismissingBackUp
+import dev.anilbeesetti.nextplayer.feature.player.ui.workPickerDirectionOf
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -123,6 +142,8 @@ fun MediaPlayerScreen(
     viewModel: PlayerViewModel,
     playerPreferences: PlayerPreferences,
     liveLines: List<String> = emptyList(),
+    workId: Long? = null,
+    openWorkPicker: Boolean = false,
     modifier: Modifier = Modifier,
     onSelectSubtitleClick: () -> Unit,
     onBackClick: () -> Unit,
@@ -233,11 +254,17 @@ fun MediaPlayerScreen(
         }
     }
 
-    var overlayView by remember { mutableStateOf<OverlayView?>(null) }
+    var overlayView by remember {
+        mutableStateOf(if (openWorkPicker && workId != null) OverlayView.WORK_PICKER else null)
+    }
+    LaunchedEffect(overlayView) {
+        if (overlayView == OverlayView.WORK_PICKER) {
+            controlsVisibilityState.hideControls()
+        }
+    }
 
     val context = LocalContext.current
     val isTv = remember { context.isTelevision }
-    val rootFocusRequester = remember { FocusRequester() }
     val playPauseFocusRequester = remember { FocusRequester() }
     val seekBarFocusRequester = remember { FocusRequester() }
     val unlockFocusRequester = remember { FocusRequester() }
@@ -245,37 +272,148 @@ fun MediaPlayerScreen(
     var isUnlockFocused by remember { mutableStateOf(false) }
     val seekIncrementMs = playerPreferences.seekIncrement.seconds.inWholeMilliseconds
 
-    if (isTv) {
-        LaunchedEffect(controlsVisibilityState.controlsVisible, controlsVisibilityState.controlsLocked, overlayView) {
-            if (overlayView != null) return@LaunchedEffect
-            if (!controlsVisibilityState.controlsVisible) {
-                runCatching { rootFocusRequester.requestFocus() }
-                return@LaunchedEffect
-            }
-            val locked = controlsVisibilityState.controlsLocked
-            val target = if (locked) unlockFocusRequester else playPauseFocusRequester
-            target.requestFocusUntilLanded(attempts = 20) { if (locked) isUnlockFocused else isPlayPauseFocused }
-        }
-    }
+    val workPickerKeys = remember { WorkPickerKeySink() }
+    val activity = LocalActivity.current as? PlayerActivity
+    val composeView = LocalView.current
+    val playerKeyDispatch = remember { PlayerKeyDispatch() }
+    var swallowDismissingBackUp by remember { mutableStateOf(false) }
 
-    // D-pad seeking (controls hidden): accumulate the skipped amount and briefly show it.
     var dpadSeekOffsetMs by remember { mutableLongStateOf(0L) }
     var dpadSeekTargetMs by remember { mutableLongStateOf(0L) }
     var dpadSeekActive by remember { mutableStateOf(false) }
     var dpadSeekTick by remember { mutableIntStateOf(0) }
-
     LaunchedEffect(dpadSeekTick) {
         if (!dpadSeekActive) return@LaunchedEffect
         delay(1.seconds)
         dpadSeekActive = false
     }
-
     val showDpadSeekFeedback: (Long) -> Unit = { deltaMs ->
         if (!dpadSeekActive) dpadSeekOffsetMs = 0L
         dpadSeekOffsetMs += deltaMs
-        dpadSeekTargetMs = player.currentPosition
+        dpadSeekTargetMs = player?.currentPosition ?: 0L
         dpadSeekActive = true
         dpadSeekTick++
+    }
+
+    SideEffect {
+        playerKeyDispatch.handle = { event ->
+            val isDown = event.action == android.view.KeyEvent.ACTION_DOWN
+            val isUp = event.action == android.view.KeyEvent.ACTION_UP
+            val direction = workPickerDirectionOf(event.keyCode)
+            val hidden = shouldHandleHiddenPlayerKey(
+                overlayOpen = overlayView != null,
+                controlsVisible = controlsVisibilityState.controlsVisible,
+            )
+            when {
+                shouldSwallowDismissingBackUp(
+                    swallowArmed = swallowDismissingBackUp,
+                    isBack = isBackKey(event.keyCode),
+                    isActionUp = isUp,
+                ) -> {
+                    swallowDismissingBackUp = false
+                    true
+                }
+                shouldDismissOverlayOnBack(overlayOpen = overlayView != null) &&
+                    isBackKey(event.keyCode) -> {
+                    if (isDown) {
+                        overlayView = null
+                        swallowDismissingBackUp = true
+                    }
+                    true
+                }
+                overlayView == OverlayView.WORK_PICKER -> {
+                    workPickerKeys.onKeyCode(event.keyCode, isDown)
+                }
+                shouldHideControlsOnBack(
+                    overlayOpen = overlayView != null,
+                    controlsVisible = controlsVisibilityState.controlsVisible,
+                ) &&
+                    isBackKey(event.keyCode) -> {
+                    if (isDown) controlsVisibilityState.hideControls()
+                    true
+                }
+                hidden &&
+                    shouldOpenWorkPickerOnDown(
+                        controlsVisible = false,
+                        hasWork = workId != null,
+                    ) &&
+                    direction == WorkPickerDirection.DOWN -> {
+                    if (isDown) {
+                        controlsVisibilityState.hideControls()
+                        overlayView = OverlayView.WORK_PICKER
+                    }
+                    true
+                }
+                hidden && isWorkPickerConfirmKey(event.keyCode) -> {
+                    if (isDown) {
+                        player?.let { if (it.isPlaying) it.pause() else it.play() }
+                    }
+                    true
+                }
+                hidden && direction == WorkPickerDirection.UP -> {
+                    if (isDown) controlsVisibilityState.showControls()
+                    true
+                }
+                hidden &&
+                    (direction == WorkPickerDirection.LEFT || direction == WorkPickerDirection.RIGHT) -> {
+                    if (isDown) {
+                        player?.let { currentPlayer ->
+                            val deltaMs = if (direction == WorkPickerDirection.LEFT) {
+                                -seekIncrementMs
+                            } else {
+                                seekIncrementMs
+                            }
+                            val duration = currentPlayer.duration
+                            val target = (currentPlayer.currentPosition + deltaMs).coerceAtLeast(0)
+                            currentPlayer.seekTo(
+                                if (duration > 0) target.coerceAtMost(duration) else target,
+                            )
+                            showDpadSeekFeedback(deltaMs)
+                        }
+                    }
+                    true
+                }
+                shouldForwardChromeKeys(
+                    overlayIsWorkPicker = overlayView == OverlayView.WORK_PICKER,
+                    chromeVisible = controlsVisibilityState.controlsVisible || overlayView != null,
+                ) &&
+                    isWorkPickerHandledKey(event.keyCode) &&
+                    !isWorkPickerConfirmKey(event.keyCode) -> {
+                    composeView.dispatchKeyEvent(event)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+    DisposableEffect(activity) {
+        activity?.dispatchKeyInterceptor = { playerKeyDispatch.handle(it) }
+        onDispose { activity?.dispatchKeyInterceptor = null }
+    }
+
+    val chromeTakesSurfaceFocus = shouldDisableSurfaceFocus(
+        overlayOpen = overlayView != null,
+        controlsVisible = controlsVisibilityState.controlsVisible,
+    )
+    SideEffect {
+        setDescendantSurfaceFocusable(composeView, focusable = !chromeTakesSurfaceFocus)
+    }
+    LaunchedEffect(chromeTakesSurfaceFocus, composeView) {
+        repeat(10) {
+            if (setDescendantSurfaceFocusable(composeView, focusable = !chromeTakesSurfaceFocus) > 0) {
+                return@LaunchedEffect
+            }
+            delay(50)
+        }
+    }
+
+    if (isTv) {
+        LaunchedEffect(controlsVisibilityState.controlsVisible, controlsVisibilityState.controlsLocked, overlayView) {
+            if (overlayView != null || !controlsVisibilityState.controlsVisible) return@LaunchedEffect
+            val locked = controlsVisibilityState.controlsLocked
+            val target = if (locked) unlockFocusRequester else playPauseFocusRequester
+            target.requestFocusUntilLanded(attempts = 20) { if (locked) isUnlockFocused else isPlayPauseFocused }
+        }
     }
 
     CompositionLocalProvider(LocalControlsVisibilityState provides controlsVisibilityState) {
@@ -287,19 +425,24 @@ fun MediaPlayerScreen(
                     .then(
                         if (isTv) {
                             Modifier
-                                .focusRequester(rootFocusRequester)
-                                .focusable()
+                                .focusProperties { canFocus = false }
                                 .onPreviewKeyEvent { keyEvent ->
-                                    if (overlayView != null) {
-                                        false
-                                    } else {
-                                        handlePlayerKeyEvent(
+                                    when {
+                                        overlayView == OverlayView.WORK_PICKER -> {
+                                            workPickerKeys.onComposeKey(keyEvent)
+                                        }
+                                        overlayView != null -> false
+                                        player == null -> false
+                                        else -> handlePlayerKeyEvent(
                                             keyEvent = keyEvent,
                                             player = player,
                                             controls = controlsVisibilityState,
                                             seekIncrementMs = seekIncrementMs,
                                             isPlayPauseFocused = isPlayPauseFocused,
                                             onDpadSeek = showDpadSeekFeedback,
+                                            onOpenWorkPicker = workId?.let {
+                                                { overlayView = OverlayView.WORK_PICKER }
+                                            },
                                         )
                                     }
                                 }
@@ -326,13 +469,18 @@ fun MediaPlayerScreen(
                     ),
                 )
 
+                val showControlScrim = shouldShowControlScrim(
+                    controlsVisible = controlsVisibilityState.controlsVisible,
+                    controlsLocked = controlsVisibilityState.controlsLocked,
+                    overlayOpen = overlayView != null,
+                )
                 AnimatedVisibility(
-                    visible = controlsVisibilityState.controlsVisible && !controlsVisibilityState.controlsLocked,
+                    visible = showControlScrim,
                     enter = fadeIn(),
                     exit = fadeOut(),
                 ) {
                     Box(
-                        modifier = modifier
+                        modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.3f)),
                     )
@@ -405,7 +553,7 @@ fun MediaPlayerScreen(
                     PlayerControlsView(
                         topView = {
                             AnimatedVisibility(
-                                visible = controlsVisibilityState.controlsVisible,
+                                visible = controlsVisibilityState.controlsVisible && overlayView == null,
                                 enter = fadeIn(),
                                 exit = fadeOut(),
                             ) {
@@ -431,7 +579,11 @@ fun MediaPlayerScreen(
                                     },
                                     onPlaylistClick = {
                                         controlsVisibilityState.hideControls()
-                                        overlayView = OverlayView.PLAYLIST
+                                        overlayView = if (workId != null) {
+                                            OverlayView.WORK_PICKER
+                                        } else {
+                                            OverlayView.PLAYLIST
+                                        }
                                     },
                                     onBackClick = onBackClick,
                                 )
@@ -442,7 +594,7 @@ fun MediaPlayerScreen(
                                 seekGestureState.seekAmount != null -> InfoView(info = "${seekGestureState.seekAmountFormatted}\n[${seekGestureState.seekToPositionFormated}]")
                                 videoZoomAndContentScaleState.isZooming -> InfoView(info = "${(videoZoomAndContentScaleState.zoom * 100).toInt()}%")
                                 videoZoomAndContentScaleState.showContentScaleIndicator -> InfoView(info = stringResource(videoZoomAndContentScaleState.videoContentScale.nameRes()))
-                                controlsVisibilityState.controlsVisible -> ControlsMiddleView(
+                                controlsVisibilityState.controlsVisible && overlayView == null -> ControlsMiddleView(
                                     player = player,
                                     isLive = mediaPresentationState.isLive,
                                     playPauseModifier = Modifier.thenIf(isTv) {
@@ -455,7 +607,9 @@ fun MediaPlayerScreen(
                         },
                         bottomView = {
                             AnimatedVisibility(
-                                visible = controlsVisibilityState.controlsVisible && !controlsVisibilityState.controlsLocked,
+                                visible = controlsVisibilityState.controlsVisible &&
+                                    !controlsVisibilityState.controlsLocked &&
+                                    overlayView == null,
                                 enter = fadeIn(),
                                 exit = fadeOut(),
                             ) {
@@ -550,6 +704,9 @@ fun MediaPlayerScreen(
                 onSubtitleOptionEvent = viewModel::onSubtitleOptionEvent,
                 onVideoContentScaleChanged = { videoZoomAndContentScaleState.onVideoContentScaleChanged(it) },
                 onLineClick = { liveLinesState.switchToLine(it) },
+                workId = workId,
+                viewModel = viewModel,
+                workPickerKeys = workPickerKeys,
             )
         }
     }
@@ -732,6 +889,10 @@ fun ControlsMiddleView(
     }
 }
 
+private class PlayerKeyDispatch {
+    var handle: (android.view.KeyEvent) -> Boolean = { false }
+}
+
 @OptIn(UnstableApi::class)
 private fun handlePlayerKeyEvent(
     keyEvent: KeyEvent,
@@ -740,6 +901,7 @@ private fun handlePlayerKeyEvent(
     seekIncrementMs: Long,
     isPlayPauseFocused: Boolean,
     onDpadSeek: (deltaMs: Long) -> Unit,
+    onOpenWorkPicker: (() -> Unit)? = null,
 ): Boolean {
     if (keyEvent.key == Key.Back && !controls.controlsLocked) {
         if (!controls.controlsVisible) return false // controls already hidden: let BACK exit
@@ -809,7 +971,7 @@ private fun handlePlayerKeyEvent(
         Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
             when {
                 !controls.controlsVisible -> {
-                    controls.showControls()
+                    togglePlayPause()
                     true
                 }
                 isPlayPauseFocused -> {
@@ -840,9 +1002,22 @@ private fun handlePlayerKeyEvent(
                 false
             }
         }
-        Key.DirectionUp, Key.DirectionDown -> {
+        Key.DirectionUp -> {
             if (!controls.controlsVisible) {
                 controls.showControls()
+                true
+            } else {
+                controls.showControls()
+                false
+            }
+        }
+        Key.DirectionDown -> {
+            if (!controls.controlsVisible) {
+                if (shouldOpenWorkPickerOnDown(controlsVisible = false, hasWork = onOpenWorkPicker != null)) {
+                    onOpenWorkPicker?.invoke()
+                } else {
+                    controls.showControls()
+                }
                 true
             } else {
                 controls.showControls()

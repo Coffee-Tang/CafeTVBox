@@ -60,7 +60,7 @@ fun RecentMediaRow(
     onItemClick: (RecentMedium) -> Unit,
     onSeeAllClick: () -> Unit,
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = HOME_EDGE_MARGIN),
     firstItemFocusRequester: FocusRequester? = null,
     downFocusRequester: FocusRequester? = null,
 ) {
@@ -71,7 +71,7 @@ fun RecentMediaRow(
         ) {
             ListSectionTitle(
                 text = stringResource(id = title),
-                contentPadding = PaddingValues(start = 16.dp, top = 12.dp, bottom = 8.dp),
+                contentPadding = PaddingValues(start = HOME_EDGE_MARGIN, top = 12.dp, bottom = 8.dp),
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onSeeAllClick, modifier = Modifier.tvFocusRing()) {
@@ -108,7 +108,7 @@ private fun RecentMediumCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .width(CARD_WIDTH)
+            .width(HOME_CARD_WIDTH)
             .tvFocusRing(shape = RoundedCornerShape(12.dp)),
         shape = RoundedCornerShape(12.dp),
     ) {
@@ -134,17 +134,27 @@ private fun RecentMediumCard(
             Text(
                 text = medium.title,
                 style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2,
-                minLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            // Written even when there is no episode to name, so that cards in a row end level.
             Text(
-                text = stringResource(id = medium.labelRes),
+                text = medium.episodeLabel().orEmpty(),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
+}
+
+/** Which episode was reached, or null for anything with no episodes to count through. */
+@Composable
+fun RecentMedium.episodeLabel(): String? {
+    val season = season ?: return null
+    val episode = episode ?: return null
+    return stringResource(id = R.string.season_episode, season, episode)
 }
 
 /**
@@ -183,17 +193,6 @@ private fun MediumArtwork(medium: RecentMedium) {
         }
     }
 }
-
-/** What the item is, in a word: a broadcast is worth telling apart from a video at an address. */
-private val RecentMedium.labelRes: Int
-    get() = when {
-        source == RecentMedium.Source.LOCAL -> R.string.media_source_local
-        source == RecentMedium.Source.SHARE -> R.string.media_source_share
-        isLive -> R.string.media_source_stream
-        else -> R.string.media_source_url
-    }
-
-private val CARD_WIDTH = 168.dp
 
 @Preview
 @Composable

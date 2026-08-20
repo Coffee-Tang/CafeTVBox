@@ -16,10 +16,12 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.displayCutout
@@ -38,6 +40,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
@@ -110,6 +113,7 @@ import dev.anilbeesetti.nextplayer.core.ui.components.CancelButton
 import dev.anilbeesetti.nextplayer.core.ui.components.DoneButton
 import dev.anilbeesetti.nextplayer.core.ui.components.NextDialog
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
+import dev.anilbeesetti.nextplayer.core.ui.components.requestFocusUntilLanded
 import dev.anilbeesetti.nextplayer.core.ui.components.thenIf
 import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.core.ui.composables.PermissionMissingView
@@ -119,6 +123,8 @@ import dev.anilbeesetti.nextplayer.core.ui.preview.DayNightPreview
 import dev.anilbeesetti.nextplayer.core.ui.preview.VideoPickerPreviewParameterProvider
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.CenterCircularProgressBar
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.HOME_EDGE_MARGIN
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.HomeRemoteFocusTarget
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaInfoDialog
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.MediaView
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.NoVideosFound
@@ -126,6 +132,8 @@ import dev.anilbeesetti.nextplayer.feature.videopicker.composables.QuickSettings
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.RecentMediaRow
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.RenameDialog
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.TextIconToggleButton
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.WorkShelfGrid
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.homeRemoteFocusTarget
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.PinDotsIndicator
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.PinKeypad
 import dev.anilbeesetti.nextplayer.feature.videopicker.composables.vault.VaultProgressDialog
@@ -168,6 +176,7 @@ internal fun MediaPickerScreen(
     var restoredFocusKey by rememberSaveable { mutableStateOf<String?>(null) }
     val continueWatchingFocusRequester = remember { FocusRequester() }
     val recentLiveFocusRequester = remember { FocusRequester() }
+    val emptyLibraryFocusRequester = remember { FocusRequester() }
     val hasMedia = (uiState.mediaDataState as? DataState.Success)?.value
         ?.let { it.folders.isNotEmpty() || it.videos.isNotEmpty() } == true
     val isHome = uiState.folderName == null
@@ -180,16 +189,21 @@ internal fun MediaPickerScreen(
         !isTv -> Modifier
         showContinueWatching -> Modifier.focusProperties { down = continueWatchingFocusRequester }
         showRecentLive -> Modifier.focusProperties { down = recentLiveFocusRequester }
+        isHome && uiState.works.isNotEmpty() -> Modifier.focusProperties { down = firstItemFocusRequester }
+        isHome && !uiState.hasLibraries -> Modifier.focusProperties { down = emptyLibraryFocusRequester }
         hasMedia -> Modifier.focusProperties { down = firstItemFocusRequester }
         else -> Modifier
     }
     val belowContinueWatching = when {
         !isTv -> null
         showRecentLive -> recentLiveFocusRequester
+        isHome && uiState.works.isNotEmpty() -> firstItemFocusRequester
         hasMedia -> firstItemFocusRequester
         else -> null
     }
-    val belowRecentLive = firstItemFocusRequester.takeIf { isTv && hasMedia }
+    val belowRecentLive = firstItemFocusRequester.takeIf {
+        isTv && (if (isHome) uiState.works.isNotEmpty() else hasMedia)
+    }
     val permissionState = rememberPermissionState(permission = storagePermission)
     var wasPermissionGranted by remember { mutableStateOf(permissionState.status.isGranted) }
 
@@ -496,6 +510,62 @@ internal fun MediaPickerScreen(
                     launchPermissionRequest = { permissionState.launchPermissionRequest() },
                 ) {}
             }
+        } else if (isHome) {
+            val containerModifier = Modifier
+                .fillMaxSize()
+                .padding(top = scaffoldPadding.calculateTopPadding())
+                .padding(start = scaffoldPadding.calculateStartPadding(LocalLayoutDirection.current) + 2.dp)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(MaterialTheme.colorScheme.background)
+            val updatedScaffoldPadding = scaffoldPadding.copy(
+                top = 0.dp,
+                start = 0.dp,
+                bottom = scaffoldPadding.calculateBottomPadding(),
+            )
+            Box(modifier = containerModifier) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (showContinueWatching) {
+                        RecentMediaRow(
+                            title = R.string.continue_watching,
+                            items = uiState.continueWatching,
+                            onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
+                            onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
+                            firstItemFocusRequester = if (isTv) continueWatchingFocusRequester else null,
+                            downFocusRequester = belowContinueWatching,
+                        )
+                    }
+                    if (showRecentLive) {
+                        RecentMediaRow(
+                            title = R.string.recent_live,
+                            items = uiState.recentLive,
+                            onItemClick = { onAction(MediaPickerAction.OnResumeWatching(it)) },
+                            onSeeAllClick = { onAction(MediaPickerAction.OnWatchHistoryClick) },
+                            firstItemFocusRequester = if (isTv) recentLiveFocusRequester else null,
+                            downFocusRequester = belowRecentLive,
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (uiState.hasLibraries) {
+                            WorkShelfGrid(
+                                works = uiState.works,
+                                onWorkClick = { onAction(MediaPickerAction.OnPlayWork(it)) },
+                                contentPadding = updatedScaffoldPadding.copy(
+                                    start = HOME_EDGE_MARGIN,
+                                    end = updatedScaffoldPadding
+                                        .calculateEndPadding(LocalLayoutDirection.current) + HOME_EDGE_MARGIN,
+                                ),
+                                firstItemFocusRequester = if (isTv) firstItemFocusRequester else null,
+                            )
+                        } else {
+                            EmptyLibrary(
+                                contentPadding = updatedScaffoldPadding,
+                                onOpenNetwork = { onAction(MediaPickerAction.OnOpenNetwork) },
+                                focusRequester = emptyLibraryFocusRequester.takeIf { isTv },
+                            )
+                        }
+                    }
+                }
+            }
         } else {
             when (uiState.mediaDataState) {
                 is DataState.Error -> {
@@ -604,6 +674,27 @@ internal fun MediaPickerScreen(
 
     BackHandler(enabled = selectionManager.isInSelectionMode) {
         selectionManager.exitSelectionMode()
+    }
+
+    if (isTv && isHome) {
+        val homeFocusTarget = homeRemoteFocusTarget(
+            showContinueWatching = showContinueWatching,
+            showRecentLive = showRecentLive,
+            hasWorks = uiState.hasLibraries && uiState.works.isNotEmpty(),
+            isEmptyLibrary = !uiState.hasLibraries,
+        )
+        val canRequestHomeFocus = permissionState.status.isGranted
+        LaunchedEffect(homeFocusTarget, canRequestHomeFocus) {
+            if (!canRequestHomeFocus) return@LaunchedEffect
+            val requester = when (homeFocusTarget) {
+                HomeRemoteFocusTarget.CONTINUE_WATCHING -> continueWatchingFocusRequester
+                HomeRemoteFocusTarget.RECENT_LIVE -> recentLiveFocusRequester
+                HomeRemoteFocusTarget.WORKS -> firstItemFocusRequester
+                HomeRemoteFocusTarget.EMPTY_CTA -> emptyLibraryFocusRequester
+                null -> return@LaunchedEffect
+            }
+            requester.requestFocusUntilLanded()
+        }
     }
 
     if (showQuickSettingsDialog) {
@@ -1425,6 +1516,44 @@ private fun SelectionAction(
 
 @PreviewScreenSizes
 @PreviewLightDark
+@Composable
+private fun EmptyLibrary(
+    contentPadding: PaddingValues,
+    onOpenNetwork: () -> Unit = {},
+    focusRequester: FocusRequester? = null,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding)
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = stringResource(id = R.string.library_empty_title),
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.size(8.dp))
+        Text(
+            text = stringResource(id = R.string.library_empty_description),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.size(24.dp))
+        Button(
+            onClick = onOpenNetwork,
+            modifier = Modifier
+                .thenIf(focusRequester != null) { focusRequester(focusRequester!!) }
+                .tvFocusRing(shape = RoundedCornerShape(50)),
+        ) {
+            Text(text = stringResource(id = R.string.library_empty_action))
+        }
+    }
+}
+
 @Composable
 private fun MediaPickerScreenPreview(
     @PreviewParameter(VideoPickerPreviewParameterProvider::class)

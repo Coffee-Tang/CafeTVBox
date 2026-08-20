@@ -4,6 +4,7 @@ import android.content.Context
 import coil3.ImageLoader
 import coil3.disk.DiskCache
 import coil3.disk.directory
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.CachePolicy
 import coil3.request.crossfade
 import dagger.Module
@@ -27,6 +28,8 @@ object ImageLoaderModule {
         preferencesRepository: PreferencesRepository,
     ): ImageLoader = ImageLoader.Builder(context)
         .components {
+            // Posters and channel logos live on the network; local videos are decoded to a frame.
+            add(OkHttpNetworkFetcherFactory())
             add(
                 VideoThumbnailDecoder.Factory(
                     thumbnailStrategy = {

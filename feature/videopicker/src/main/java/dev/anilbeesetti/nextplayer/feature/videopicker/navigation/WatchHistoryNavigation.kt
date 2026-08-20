@@ -18,7 +18,7 @@ fun NavBackStack<NavKey>.navigateToWatchHistory() {
 
 fun EntryProviderScope<NavKey>.watchHistoryEntry(
     onNavigateUp: () -> Unit,
-    onResumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
+    onResumeWatching: (media: PlayableMedia, mediaKey: String, title: String, workId: Long?) -> Unit,
 ) {
     entry<WatchHistoryRoute> {
         WatchHistoryScreenRoute(

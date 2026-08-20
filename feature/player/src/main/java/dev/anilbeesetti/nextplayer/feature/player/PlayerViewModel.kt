@@ -4,18 +4,26 @@ import android.net.Uri
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.anilbeesetti.nextplayer.core.data.playback.PlayableMediaResolver
+import dev.anilbeesetti.nextplayer.core.data.repository.CatalogueRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.MediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.PreferencesRepository
 import dev.anilbeesetti.nextplayer.core.domain.GetSortedPlaylistUseCase
+import dev.anilbeesetti.nextplayer.core.model.LibraryEpisode
 import dev.anilbeesetti.nextplayer.core.model.LoopMode
 import dev.anilbeesetti.nextplayer.core.model.PlayerPreferences
 import dev.anilbeesetti.nextplayer.core.model.Video
 import dev.anilbeesetti.nextplayer.core.model.VideoContentScale
+import dev.anilbeesetti.nextplayer.core.model.WorkDetail
 import dev.anilbeesetti.nextplayer.feature.player.state.SubtitleOptionsEvent
 import dev.anilbeesetti.nextplayer.feature.player.state.VideoZoomEvent
 import dev.anilbeesetti.nextplayer.feature.player.state.linesStartingWith
 import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -26,6 +34,8 @@ class PlayerViewModel @Inject constructor(
     private val mediaRepository: MediaRepository,
     private val preferencesRepository: PreferencesRepository,
     private val getSortedPlaylistUseCase: GetSortedPlaylistUseCase,
+    private val catalogueRepository: CatalogueRepository,
+    private val playableMediaResolver: PlayableMediaResolver,
 ) : ViewModel() {
 
     var playWhenReady: Boolean = true
@@ -46,6 +56,26 @@ class PlayerViewModel @Inject constructor(
     }
 
     suspend fun getPlaylistFromUri(uri: Uri): List<Video> = getSortedPlaylistUseCase.invoke(uri)
+
+    fun workDetail(workId: Long): Flow<WorkDetail?> = catalogueRepository.observeWork(workId)
+
+    fun playEpisode(player: Player, episode: LibraryEpisode, title: String) {
+        viewModelScope.launch {
+            val mediaKey = episode.mediaKey
+                ?: catalogueRepository.playableKey(episode.id)
+                ?: return@launch
+            val playable = playableMediaResolver.resolve(mediaKey) ?: return@launch
+            player.setMediaItem(
+                MediaItem.Builder()
+                    .setUri(playable.uri)
+                    .setMediaId(mediaKey)
+                    .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+                    .build(),
+            )
+            player.prepare()
+            player.play()
+        }
+    }
 
     /**
      * The lines of a channel in the order they should be tried, the one that last played first.

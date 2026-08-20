@@ -50,6 +50,7 @@ import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.core.ui.components.tvListFocus
 import dev.anilbeesetti.nextplayer.core.ui.designsystem.NextIcons
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
+import dev.anilbeesetti.nextplayer.feature.videopicker.composables.episodeLabel
 
 @Composable
 fun WatchHistoryScreenRoute(
@@ -227,7 +228,7 @@ private fun WatchHistoryItem(
 }
 
 /**
- * When the item was last watched, and how far it got when that is worth saying.
+ * Which episode it reached, when it was last watched, and how far it got when that is worth saying.
  *
  * A stream has no length to be part of the way through, so only its source and time are shown.
  */
@@ -252,7 +253,7 @@ private fun RecentMedium.supportingText(): String {
             Utils.formatDurationMillis(duration),
         )
     }
-    return listOfNotNull(watched, sourceLabel, progressLabel).joinToString(" · ")
+    return listOfNotNull(episodeLabel(), watched, sourceLabel, progressLabel).joinToString(" · ")
 }
 
 private val RecentMedium.Source.icon

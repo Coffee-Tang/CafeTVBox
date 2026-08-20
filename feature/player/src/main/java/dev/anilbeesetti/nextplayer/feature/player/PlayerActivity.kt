@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -94,6 +95,13 @@ class PlayerActivity : ComponentActivity() {
 
     private val subtitleFileSuspendLauncher = registerForSuspendActivityResult(OpenDocumentAtInitialUri())
 
+    internal var dispatchKeyInterceptor: ((KeyEvent) -> Boolean)? = null
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (dispatchKeyInterceptor?.invoke(event) == true) return true
+        return super.dispatchKeyEvent(event)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
@@ -123,6 +131,8 @@ class PlayerActivity : ComponentActivity() {
                         viewModel = viewModel,
                         playerPreferences = uiState.playerPreferences ?: return@NextPlayerTheme,
                         liveLines = liveLines,
+                        workId = intent.getLongExtra(EXTRA_WORK_ID, 0L).takeIf { it > 0 },
+                        openWorkPicker = intent.getBooleanExtra(EXTRA_OPEN_WORK_PICKER, false),
                         onSelectSubtitleClick = {
                             lifecycleScope.launch {
                                 val videoUri = mediaController?.currentMediaItem?.localConfiguration?.uri

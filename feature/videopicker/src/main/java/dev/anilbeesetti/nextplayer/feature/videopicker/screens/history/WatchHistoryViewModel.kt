@@ -29,7 +29,7 @@ class WatchHistoryViewModel @AssistedInject constructor(
 
     data class Output(
         val navigateUp: () -> Unit,
-        val resumeWatching: (media: PlayableMedia, mediaKey: String, title: String) -> Unit,
+        val resumeWatching: (media: PlayableMedia, mediaKey: String, title: String, workId: Long?) -> Unit,
     )
 
     @AssistedFactory
@@ -64,7 +64,7 @@ class WatchHistoryViewModel @AssistedInject constructor(
                 )
                 return@launch
             }
-            output.resumeWatching(playable, medium.mediaKey, medium.title)
+            output.resumeWatching(playable, medium.mediaKey, medium.title, medium.workId)
         }
     }
 

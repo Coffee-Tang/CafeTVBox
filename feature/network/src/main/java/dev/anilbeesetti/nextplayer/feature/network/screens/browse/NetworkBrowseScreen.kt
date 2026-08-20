@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,10 +27,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.anilbeesetti.nextplayer.core.common.Utils
 import dev.anilbeesetti.nextplayer.core.model.NetworkFile
+import dev.anilbeesetti.nextplayer.core.model.WorkKind
 import dev.anilbeesetti.nextplayer.core.ui.R
 import dev.anilbeesetti.nextplayer.core.ui.components.NextSegmentedListItem
 import dev.anilbeesetti.nextplayer.core.ui.components.NextTopAppBar
@@ -63,6 +68,7 @@ fun NetworkBrowseScreenRoute(
     viewModel: NetworkBrowseViewModel,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var pickingKind by remember { mutableStateOf(false) }
 
     ObserveAsEvents(viewModel.playEvents, onEvent = onPlayVideos)
 
@@ -73,7 +79,17 @@ fun NetworkBrowseScreenRoute(
         onVideoClick = viewModel::playVideo,
         onRetry = viewModel::retry,
         onEditConnection = { onEditConnection(viewModel.connectionId) },
+        onSetAsLibrary = { pickingKind = true },
     )
+    if (pickingKind) {
+        LibraryKindDialog(
+            onDismiss = { pickingKind = false },
+            onPick = { kind ->
+                pickingKind = false
+                viewModel.addAsLibrary(kind)
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,6 +101,7 @@ internal fun NetworkBrowseScreen(
     onVideoClick: (NetworkFile) -> Unit,
     onRetry: () -> Unit,
     onEditConnection: () -> Unit,
+    onSetAsLibrary: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -95,6 +112,14 @@ internal fun NetworkBrowseScreen(
                         Icon(
                             imageVector = NextIcons.ArrowBack,
                             contentDescription = stringResource(R.string.navigate_up),
+                        )
+                    }
+                },
+                actions = {
+                    FilledTonalIconButton(onClick = onSetAsLibrary, modifier = Modifier.tvFocusRing()) {
+                        Icon(
+                            imageVector = NextIcons.Movie,
+                            contentDescription = stringResource(R.string.set_as_library),
                         )
                     }
                 },
@@ -294,6 +319,28 @@ private fun SupportingText(text: String) {
         text = text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun LibraryKindDialog(
+    onDismiss: () -> Unit,
+    onPick: (WorkKind) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.library_kind_title)) },
+        text = { Text(stringResource(R.string.set_as_library)) },
+        confirmButton = {
+            TextButton(onClick = { onPick(WorkKind.SERIES) }) {
+                Text(stringResource(R.string.library_kind_series))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onPick(WorkKind.FILM) }) {
+                Text(stringResource(R.string.library_kind_film))
+            }
+        },
     )
 }
 

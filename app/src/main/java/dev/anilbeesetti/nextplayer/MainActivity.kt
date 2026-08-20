@@ -136,7 +136,11 @@ class MainActivity : ComponentActivity() {
                     // Media and network entries navigate within their own tab's stack; settings is
                     // shared, so it navigates within whichever tab it was opened from (the current one).
                     val provider = entryProvider {
-                        mediaNavGraph(context = this@MainActivity, backStack = mediaStack)
+                        mediaNavGraph(
+                            context = this@MainActivity,
+                            backStack = mediaStack,
+                            onOpenNetwork = { navState.switchTo(TopLevelDestination.NETWORK.route) },
+                        )
                         playlistNavGraph(context = this@MainActivity, backStack = playlistStack)
                         networkNavGraph(context = this@MainActivity, backStack = networkStack)
                         liveNavGraph(context = this@MainActivity, backStack = liveStack)

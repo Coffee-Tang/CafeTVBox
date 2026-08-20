@@ -133,6 +133,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
 
     implementation(libs.coil.compose)
+    // Coil 3 has no HTTP support of its own, so without this every remote image silently fails.
+    implementation(libs.coil.network.okhttp)
 
     // Hilt
     implementation(libs.hilt.android)

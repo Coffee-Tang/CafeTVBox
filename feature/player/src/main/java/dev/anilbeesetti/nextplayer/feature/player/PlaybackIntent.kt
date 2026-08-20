@@ -34,3 +34,9 @@ const val EXTRA_LIVE_LINES = "dev.anilbeesetti.nextplayer.extra.LIVE_LINES"
  * nothing, while the playlist it came from knows it as, say, CCTV-1.
  */
 const val EXTRA_MEDIA_TITLE = "dev.anilbeesetti.nextplayer.extra.MEDIA_TITLE"
+
+/** The catalogue work being played, so the player can offer its seasons and episodes. */
+const val EXTRA_WORK_ID = "dev.anilbeesetti.nextplayer.extra.WORK_ID"
+
+/** When true, the work picker is shown as soon as playback starts. */
+const val EXTRA_OPEN_WORK_PICKER = "dev.anilbeesetti.nextplayer.extra.OPEN_WORK_PICKER"
