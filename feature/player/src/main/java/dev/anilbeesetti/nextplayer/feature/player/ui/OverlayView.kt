@@ -33,12 +33,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.anilbeesetti.nextplayer.core.common.extensions.isTelevision
 import dev.anilbeesetti.nextplayer.core.ui.components.requestFocusUntilLanded
+import dev.anilbeesetti.nextplayer.core.ui.input.usingRemote
 import dev.anilbeesetti.nextplayer.core.ui.theme.NextPlayerTheme
 
 @Composable
@@ -49,16 +48,16 @@ fun BoxScope.OverlayView(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val configuration = LocalConfiguration.current
-    val context = LocalContext.current
-    val isTv = remember { context.isTelevision }
     val layoutDirection = LocalLayoutDirection.current
     val endPadding = WindowInsets.safeDrawing
         .asPaddingValues()
         .calculateEndPadding(layoutDirection)
 
     val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(show) {
-        if (show && isTv) {
+    // Reaching for the remote while a panel is already open should still land focus in it.
+    val takeFocus = usingRemote
+    LaunchedEffect(show, takeFocus) {
+        if (show && takeFocus) {
             focusRequester.requestFocusUntilLanded(attempts = 20)
         }
     }

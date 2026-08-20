@@ -413,7 +413,7 @@ internal fun MediaPickerScreen(
                             // Match the ring to the FAB's own shape: a 16.dp rounded square while
                             // collapsed, morphing to a circle once expanded.
                             .tvFocusRing(
-                                isTv = isTv,
+                                enabled = isTv,
                                 shape = if (isFabExpanded) CircleShape else RoundedCornerShape(16.dp),
                             )
                             .thenIf(isTv && hasMedia) {

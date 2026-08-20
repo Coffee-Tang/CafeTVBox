@@ -66,15 +66,14 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import dev.anilbeesetti.nextplayer.core.common.extensions.isTelevision
 import dev.anilbeesetti.nextplayer.core.model.ControlButtonsPosition
 import dev.anilbeesetti.nextplayer.core.model.PlayerPreferences
 import dev.anilbeesetti.nextplayer.core.model.WorkPickerDirection
 import dev.anilbeesetti.nextplayer.core.model.shouldOpenWorkPickerOnDown
 import dev.anilbeesetti.nextplayer.core.ui.R as coreUiR
 import dev.anilbeesetti.nextplayer.core.ui.components.requestFocusUntilLanded
-import dev.anilbeesetti.nextplayer.core.ui.components.thenIf
 import dev.anilbeesetti.nextplayer.core.ui.extensions.copy
+import dev.anilbeesetti.nextplayer.core.ui.input.usingRemote
 import dev.anilbeesetti.nextplayer.feature.player.buttons.NextButton
 import dev.anilbeesetti.nextplayer.feature.player.buttons.PlayPauseButton
 import dev.anilbeesetti.nextplayer.feature.player.buttons.PlayerButton
@@ -259,7 +258,6 @@ fun MediaPlayerScreen(
     }
 
     val context = LocalContext.current
-    val isTv = remember { context.isTelevision }
     val playPauseFocusRequester = remember { FocusRequester() }
     val seekBarFocusRequester = remember { FocusRequester() }
     val unlockFocusRequester = remember { FocusRequester() }
@@ -402,13 +400,19 @@ fun MediaPlayerScreen(
         }
     }
 
-    if (isTv) {
-        LaunchedEffect(controlsVisibilityState.controlsVisible, controlsVisibilityState.controlsLocked, overlayView) {
-            if (overlayView != null || !controlsVisibilityState.controlsVisible) return@LaunchedEffect
-            val locked = controlsVisibilityState.controlsLocked
-            val target = if (locked) unlockFocusRequester else playPauseFocusRequester
-            target.requestFocusUntilLanded(attempts = 20) { if (locked) isUnlockFocused else isPlayPauseFocused }
+    val chromeTakesFocus = usingRemote
+    LaunchedEffect(
+        chromeTakesFocus,
+        controlsVisibilityState.controlsVisible,
+        controlsVisibilityState.controlsLocked,
+        overlayView,
+    ) {
+        if (!chromeTakesFocus || overlayView != null || !controlsVisibilityState.controlsVisible) {
+            return@LaunchedEffect
         }
+        val locked = controlsVisibilityState.controlsLocked
+        val target = if (locked) unlockFocusRequester else playPauseFocusRequester
+        target.requestFocusUntilLanded(attempts = 20) { if (locked) isUnlockFocused else isPlayPauseFocused }
     }
 
     CompositionLocalProvider(LocalControlsVisibilityState provides controlsVisibilityState) {
@@ -503,10 +507,9 @@ fun MediaPlayerScreen(
                             .padding(top = 24.dp),
                     ) {
                         PlayerButton(
-                            modifier = Modifier.thenIf(isTv) {
-                                focusRequester(unlockFocusRequester)
-                                    .onFocusChanged { isUnlockFocused = it.hasFocus }
-                            },
+                            modifier = Modifier
+                                .focusRequester(unlockFocusRequester)
+                                .onFocusChanged { isUnlockFocused = it.hasFocus },
                             containerColor = Color.Black.copy(0.5f),
                             onClick = { controlsVisibilityState.unlockControls() },
                         ) {
@@ -564,10 +567,9 @@ fun MediaPlayerScreen(
                                 controlsVisibilityState.controlsVisible && overlayView == null -> ControlsMiddleView(
                                     player = player,
                                     isLive = mediaPresentationState.isLive,
-                                    playPauseModifier = Modifier.thenIf(isTv) {
-                                        focusRequester(playPauseFocusRequester)
-                                            .onFocusChanged { isPlayPauseFocused = it.hasFocus }
-                                    },
+                                    playPauseModifier = Modifier
+                                        .focusRequester(playPauseFocusRequester)
+                                        .onFocusChanged { isPlayPauseFocused = it.hasFocus },
                                 )
                                 else -> Unit
                             }
@@ -591,10 +593,9 @@ fun MediaPlayerScreen(
                                     videoContentScale = videoZoomAndContentScaleState.videoContentScale,
                                     isPipSupported = pictureInPictureState.isPipSupported,
                                     isLive = mediaPresentationState.isLive,
-                                    seekBarModifier = Modifier.thenIf(isTv) {
-                                        focusRequester(seekBarFocusRequester)
-                                            .focusProperties { up = playPauseFocusRequester }
-                                    },
+                                    seekBarModifier = Modifier
+                                        .focusRequester(seekBarFocusRequester)
+                                        .focusProperties { up = playPauseFocusRequester },
                                     onSeek = seekGestureState::onSeek,
                                     onSeekEnd = seekGestureState::onSeekEnd,
                                     onRotateClick = rotationState::rotate,
@@ -726,7 +727,7 @@ fun MediaPlayerScreen(
     BackHandler {
         when {
             overlayView != null -> overlayView = null
-            isTv && controlsVisibilityState.controlsVisible -> controlsVisibilityState.hideControls()
+            controlsVisibilityState.controlsVisible -> controlsVisibilityState.hideControls()
             else -> onBackClick()
         }
     }

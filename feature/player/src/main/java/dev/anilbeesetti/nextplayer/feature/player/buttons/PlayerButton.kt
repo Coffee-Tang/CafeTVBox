@@ -18,11 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.unit.dp
-import dev.anilbeesetti.nextplayer.core.common.extensions.isTelevision
 import dev.anilbeesetti.nextplayer.core.ui.components.tvFocusRing
 import dev.anilbeesetti.nextplayer.feature.player.LocalUseMaterialYouControls
 import kotlinx.coroutines.delay
@@ -41,8 +39,6 @@ fun PlayerButton(
     val interactionSource = remember { MutableInteractionSource() }
     val viewConfiguration = LocalViewConfiguration.current
     val hapticFeedback = LocalHapticFeedback.current
-    val context = LocalContext.current
-    val isTv = remember { context.isTelevision }
 
     LaunchedEffect(interactionSource) {
         var isLongPressClicked = false
@@ -71,7 +67,7 @@ fun PlayerButton(
         FilledTonalIconButton(
             onClick = {},
             enabled = isEnabled,
-            modifier = modifier.size(40.dp).tvFocusRing(isTv),
+            modifier = modifier.size(40.dp).tvFocusRing(),
             interactionSource = interactionSource,
             content = content,
         )
@@ -91,7 +87,7 @@ fun PlayerButton(
             IconButton(
                 onClick = {},
                 enabled = isEnabled,
-                modifier = modifier.tvFocusRing(isTv),
+                modifier = modifier.tvFocusRing(),
                 interactionSource = interactionSource,
                 colors = IconButtonDefaults.iconButtonColors().copy(containerColor = containerColor),
                 content = content,
