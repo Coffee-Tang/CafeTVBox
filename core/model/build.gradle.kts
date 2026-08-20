@@ -18,5 +18,6 @@ tasks.withType<JavaCompile> {
 
 dependencies {
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.pinyin4j)
     testImplementation(libs.junit4)
 }
