@@ -18,7 +18,12 @@ data class WorkPickerCursor(
     val episodeIndex: Int,
 )
 
-const val WORK_PICKER_COLUMNS = 6
+/**
+ * How many episodes to assume stand in a row of the picker. The grid on screen decides the real
+ * number from how wide it is and the cursor steps by that, so this only answers for the moment
+ * before the grid has been laid out once and has nothing to report.
+ */
+const val WORK_PICKER_COLUMNS = 10
 
 fun hasSeasonTabs(seasons: List<LibrarySeason>): Boolean {
     val only = seasons.singleOrNull()

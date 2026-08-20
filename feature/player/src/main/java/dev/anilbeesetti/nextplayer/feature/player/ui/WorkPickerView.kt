@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -35,13 +36,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import dev.anilbeesetti.nextplayer.core.common.extensions.isTelevision
 import dev.anilbeesetti.nextplayer.core.model.GroupedItem
 import dev.anilbeesetti.nextplayer.core.model.LibraryEpisode
 import dev.anilbeesetti.nextplayer.core.model.LibrarySeason
@@ -70,8 +69,6 @@ fun BoxScope.WorkPickerView(
     keySink: WorkPickerKeySink? = null,
 ) {
     if (!show) return
-    val context = LocalContext.current
-    val isTv = remember { context.isTelevision }
     val detail by remember(workId) { viewModel.workDetail(workId) }
         .collectAsStateWithLifecycle(initialValue = null)
     val playlistState = rememberPlaylistState(player)
@@ -88,6 +85,7 @@ fun BoxScope.WorkPickerView(
         }
     }
     val season = seasons.getOrNull(cursor?.seasonIndex ?: -1) ?: seasons.firstOrNull()
+    val gridState = rememberLazyGridState()
 
     SideEffect {
         if (keySink != null) {
@@ -97,6 +95,9 @@ fun BoxScope.WorkPickerView(
                     isDown = isDown,
                     seasons = seasons,
                     cursor = cursor,
+                    // Asked as the key arrives, so the step matches the row the grid last laid out
+                    // rather than the row someone expected it to lay out.
+                    columns = gridState.layoutInfo.maxSpan,
                     currentMediaId = currentMediaId,
                     focusedEpisodeId = detail?.focusedEpisodeId,
                     onCursor = { cursor = it },
@@ -140,11 +141,11 @@ fun BoxScope.WorkPickerView(
         if (season != null) {
             EpisodeGrid(
                 season = season,
+                state = gridState,
                 currentMediaId = currentMediaId,
                 cursorEpisodeIndex = cursor
                     ?.takeIf { it.band == WorkPickerBand.EPISODES }
                     ?.episodeIndex,
-                isTv = isTv,
                 onEpisodeClick = { episode ->
                     viewModel.playEpisode(player, episode, detail?.work?.title.orEmpty())
                     onDismiss()
@@ -159,6 +160,7 @@ private fun handlePickerKey(
     isDown: Boolean,
     seasons: List<LibrarySeason>,
     cursor: WorkPickerCursor?,
+    columns: Int,
     currentMediaId: String?,
     focusedEpisodeId: Long?,
     onCursor: (WorkPickerCursor) -> Unit,
@@ -186,6 +188,8 @@ private fun handlePickerKey(
             cursor = current,
             seasons = seasons,
             direction = direction,
+            // The grid has nothing to report until it has been laid out once.
+            columns = columns.takeIf { it > 0 } ?: WORK_PICKER_COLUMNS,
             currentMediaKey = currentMediaId,
             focusedEpisodeId = focusedEpisodeId,
         ),
@@ -252,23 +256,20 @@ private fun SeasonTabs(
 @Composable
 private fun EpisodeGrid(
     season: LibrarySeason,
+    state: LazyGridState,
     currentMediaId: String?,
     cursorEpisodeIndex: Int?,
-    isTv: Boolean,
     onEpisodeClick: (LibraryEpisode) -> Unit,
 ) {
-    val gridState = rememberLazyGridState()
     LaunchedEffect(season.season, cursorEpisodeIndex) {
         val index = cursorEpisodeIndex ?: return@LaunchedEffect
-        if (index in season.episodes.indices) gridState.scrollToItem(index)
+        if (index in season.episodes.indices) state.scrollToItem(index)
     }
     LazyVerticalGrid(
-        columns = if (isTv) {
-            GridCells.Fixed(WORK_PICKER_COLUMNS)
-        } else {
-            GridCells.Adaptive(minSize = 88.dp)
-        },
-        state = gridState,
+        // How wide the screen is decides the row, so picking up the remote does not re-lay it out.
+        // The cursor steps by what the grid reports laying out, so any row size navigates correctly.
+        columns = GridCells.Adaptive(minSize = 88.dp),
+        state = state,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize(),

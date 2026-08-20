@@ -67,6 +67,85 @@ class WorkPickerCursorTest {
         assertEquals(1, down.seasonIndex)
     }
 
+    @Test
+    fun `down and up move a whole row, keeping the column`() {
+        val seasons = longSeason()
+        val start = WorkPickerCursor(WorkPickerBand.EPISODES, seasonIndex = 0, episodeIndex = 2)
+
+        val down = moveWorkPickerCursor(start, seasons, WorkPickerDirection.DOWN)
+        assertEquals(WorkPickerBand.EPISODES, down.band)
+        assertEquals(2 + WORK_PICKER_COLUMNS, down.episodeIndex)
+
+        val backUp = moveWorkPickerCursor(down, seasons, WorkPickerDirection.UP)
+        assertEquals(2, backUp.episodeIndex)
+    }
+
+    @Test
+    fun `right stops at the end of a row instead of wrapping onto the next`() {
+        val lastOfRow = WorkPickerCursor(
+            WorkPickerBand.EPISODES,
+            seasonIndex = 0,
+            episodeIndex = WORK_PICKER_COLUMNS - 1,
+        )
+
+        val right = moveWorkPickerCursor(lastOfRow, longSeason(), WorkPickerDirection.RIGHT)
+
+        assertEquals(WORK_PICKER_COLUMNS - 1, right.episodeIndex)
+    }
+
+    @Test
+    fun `down from the last row stays put even when the row is short`() {
+        val episodeCount = WORK_PICKER_COLUMNS + 3
+        val seasons = longSeason(episodeCount = episodeCount)
+        val onLastRow = WorkPickerCursor(
+            WorkPickerBand.EPISODES,
+            seasonIndex = 0,
+            episodeIndex = episodeCount - 1,
+        )
+
+        val down = moveWorkPickerCursor(onLastRow, seasons, WorkPickerDirection.DOWN)
+
+        assertEquals(episodeCount - 1, down.episodeIndex)
+    }
+
+    @Test
+    fun `down from a full row lands on the last episode when the row below is short`() {
+        val episodeCount = WORK_PICKER_COLUMNS + 2
+        val seasons = longSeason(episodeCount = episodeCount)
+        val aboveTheGap = WorkPickerCursor(
+            WorkPickerBand.EPISODES,
+            seasonIndex = 0,
+            episodeIndex = WORK_PICKER_COLUMNS - 1,
+        )
+
+        val down = moveWorkPickerCursor(aboveTheGap, seasons, WorkPickerDirection.DOWN)
+
+        assertEquals(episodeCount - 1, down.episodeIndex)
+    }
+
+    /** A season long enough to fill more than one row of the picker, whatever the row holds. */
+    private fun longSeason(episodeCount: Int = WORK_PICKER_COLUMNS * 2 + 4): List<LibrarySeason> =
+        workDetailOf(
+            work = LibraryWork(
+                id = 1,
+                libraryId = 1,
+                workKey = "tiandao",
+                kind = WorkKind.SERIES,
+                title = "天道",
+                otherTitle = null,
+                year = null,
+                posterUrl = null,
+            ),
+            episodes = (1..episodeCount).map { episode ->
+                LibraryEpisode(
+                    id = episode.toLong(),
+                    season = 1,
+                    episode = episode,
+                    mediaKey = "s1e$episode",
+                )
+            },
+        ).seasons
+
     private fun siliconSeasons(): List<LibrarySeason> = workDetailOf(
         work = LibraryWork(
             id = 1,
