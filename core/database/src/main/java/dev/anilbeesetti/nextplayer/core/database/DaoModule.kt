@@ -4,6 +4,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+
 @Module
 @InstallIn(SingletonComponent::class)
 object DaoModule {
@@ -22,4 +23,7 @@ object DaoModule {
 
     @Provides
     fun provideLiveSourceDao(db: MediaDatabase) = db.liveSourceDao()
+
+    @Provides
+    fun provideCatalogueDao(db: MediaDatabase) = db.catalogueDao()
 }

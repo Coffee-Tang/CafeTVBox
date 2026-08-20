@@ -8,11 +8,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.anilbeesetti.nextplayer.core.data.catalogue.TmdbApiKey
+import dev.anilbeesetti.nextplayer.core.data.repository.CatalogueRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.EpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.HttpEpgRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.HttpLiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveChannelRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LiveSourceRepository
+import dev.anilbeesetti.nextplayer.core.data.repository.LocalCatalogueRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LocalLiveSourceRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LocalMediaRepository
 import dev.anilbeesetti.nextplayer.core.data.repository.LocalNetworkConnectionRepository
@@ -113,6 +115,12 @@ interface DataModule {
     fun bindsEpgRepository(
         epgRepository: HttpEpgRepository,
     ): EpgRepository
+
+    @Binds
+    @Singleton
+    fun bindsCatalogueRepository(
+        catalogueRepository: LocalCatalogueRepository,
+    ): CatalogueRepository
 
     companion object {
 

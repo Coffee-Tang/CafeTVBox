@@ -213,6 +213,59 @@ class MediaDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrate13To14_opensTheCatalogueTablesAndKeepsHistory() {
+        helper.createDatabase(TEST_DB, 13).apply {
+            execSQL(
+                "INSERT INTO media_state " +
+                    "(uri,playback_position,audio_track_index,subtitle_track_index," +
+                    "playback_speed,last_played_time,external_subs,video_scale," +
+                    "subtitle_delay,subtitle_speed,title,duration,last_line) " +
+                    "VALUES ('cafeplayer-network://1/Shows/One.mkv',120000,NULL,NULL,NULL," +
+                    "123,'',1.0,0,1.0,'Silicon Valley',NULL,NULL)",
+            )
+            close()
+        }
+
+        helper.runMigrationsAndValidate(
+            TEST_DB,
+            14,
+            true,
+            MediaDatabase.MIGRATION_13_14,
+        ).use { db ->
+            db.query("SELECT title FROM media_state").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Silicon Valley", cursor.getString(0))
+            }
+            db.execSQL(
+                "INSERT INTO catalogue_library (id,name,root,kind,connection_id,created_at) " +
+                    "VALUES (1,'Shows','/Shows','SERIES',1,123)",
+            )
+            db.execSQL(
+                "INSERT INTO catalogue_work " +
+                    "(id,library_id,work_key,kind,title,other_title,year,tmdb_id,poster_path,overview,bound_by) " +
+                    "VALUES (1,1,'siliconvalley','SERIES','Silicon Valley','硅谷',NULL,NULL,NULL,NULL,NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO catalogue_item " +
+                    "(id,work_id,season,episode,playback_position,duration,last_played_time,last_file_uri) " +
+                    "VALUES (1,1,3,1,0,NULL,NULL,NULL)",
+            )
+            db.execSQL(
+                "INSERT INTO catalogue_item_file (id,item_id,uri,path) " +
+                    "VALUES (1,1,'cafeplayer-network://1/Shows/One.mkv','SE03/One.mkv')",
+            )
+            db.query("SELECT title FROM catalogue_work WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals("Silicon Valley", cursor.getString(0))
+            }
+            db.query("SELECT episode FROM catalogue_item WHERE id = 1").use { cursor ->
+                check(cursor.moveToFirst())
+                assertEquals(1, cursor.getInt(0))
+            }
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test"
     }

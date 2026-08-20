@@ -4,11 +4,16 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import dev.anilbeesetti.nextplayer.core.database.dao.CatalogueDao
 import dev.anilbeesetti.nextplayer.core.database.dao.HiddenVideoDao
 import dev.anilbeesetti.nextplayer.core.database.dao.LiveSourceDao
 import dev.anilbeesetti.nextplayer.core.database.dao.MediumStateDao
 import dev.anilbeesetti.nextplayer.core.database.dao.NetworkConnectionDao
 import dev.anilbeesetti.nextplayer.core.database.dao.PlaylistDao
+import dev.anilbeesetti.nextplayer.core.database.entities.CatalogueItemEntity
+import dev.anilbeesetti.nextplayer.core.database.entities.CatalogueItemFileEntity
+import dev.anilbeesetti.nextplayer.core.database.entities.CatalogueLibraryEntity
+import dev.anilbeesetti.nextplayer.core.database.entities.CatalogueWorkEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.HiddenVideoEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.LiveSourceEntity
 import dev.anilbeesetti.nextplayer.core.database.entities.MediumStateEntity
@@ -24,8 +29,12 @@ import dev.anilbeesetti.nextplayer.core.database.entities.PlaylistItemEntity
         PlaylistEntity::class,
         PlaylistItemEntity::class,
         LiveSourceEntity::class,
+        CatalogueLibraryEntity::class,
+        CatalogueWorkEntity::class,
+        CatalogueItemEntity::class,
+        CatalogueItemFileEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class MediaDatabase : RoomDatabase() {
@@ -39,6 +48,8 @@ abstract class MediaDatabase : RoomDatabase() {
     abstract fun playlistDao(): PlaylistDao
 
     abstract fun liveSourceDao(): LiveSourceDao
+
+    abstract fun catalogueDao(): CatalogueDao
 
     companion object {
         const val DATABASE_NAME = "media_db"
@@ -361,6 +372,50 @@ abstract class MediaDatabase : RoomDatabase() {
         val MIGRATION_12_13 = object : Migration(12, 13) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `media_state` ADD COLUMN `last_line` TEXT")
+            }
+        }
+
+        /**
+         * Opens a shelf for the works a library holds, separate from the files they were found in.
+         *
+         * Playback history has been a list of files. A wall of works cannot be built from that:
+         * six season folders of one series would be six works, and two encodes of one episode
+         * would be two histories. These tables hold the library, the work, the episode or film,
+         * and the files that belong to it, so a later scan can write what it found and history
+         * can hang on the episode instead of the file.
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `catalogue_library` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `root` TEXT NOT NULL, `kind` TEXT NOT NULL, `connection_id` INTEGER, `created_at` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `catalogue_work` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `library_id` INTEGER NOT NULL, `work_key` TEXT NOT NULL, `kind` TEXT NOT NULL, `title` TEXT NOT NULL, `other_title` TEXT, `year` INTEGER, `tmdb_id` INTEGER, `poster_path` TEXT, `overview` TEXT, `bound_by` TEXT, FOREIGN KEY(`library_id`) REFERENCES `catalogue_library`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_catalogue_work_library_id` ON `catalogue_work` (`library_id`)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_catalogue_work_library_id_kind_work_key` ON `catalogue_work` (`library_id`, `kind`, `work_key`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `catalogue_item` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `work_id` INTEGER NOT NULL, `season` INTEGER NOT NULL, `episode` INTEGER NOT NULL, `playback_position` INTEGER NOT NULL DEFAULT 0, `duration` INTEGER, `last_played_time` INTEGER, `last_file_uri` TEXT, FOREIGN KEY(`work_id`) REFERENCES `catalogue_work`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_catalogue_item_work_id` ON `catalogue_item` (`work_id`)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_catalogue_item_work_id_season_episode` ON `catalogue_item` (`work_id`, `season`, `episode`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `catalogue_item_file` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `item_id` INTEGER NOT NULL, `uri` TEXT NOT NULL, `path` TEXT NOT NULL, FOREIGN KEY(`item_id`) REFERENCES `catalogue_item`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_catalogue_item_file_item_id` ON `catalogue_item_file` (`item_id`)",
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_catalogue_item_file_uri` ON `catalogue_item_file` (`uri`)",
+                )
             }
         }
     }

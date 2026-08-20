@@ -11,6 +11,21 @@ data class RecentMedium(
     val positionMs: Long,
     val durationMs: Long?,
     val lastPlayedTime: Long,
+    /**
+     * The work this belongs to, so that reopening it can still offer the rest of the work.
+     *
+     * Null for anything no library has catalogued: a live channel, a URL played once, a file
+     * outside every library.
+     */
+    val workId: Long? = null,
+    /**
+     * Which episode was reached, for a work watched an episode at a time.
+     *
+     * Both are null for anything with nothing to count through: a film, a live channel, a file no
+     * library has catalogued.
+     */
+    val season: Int? = null,
+    val episode: Int? = null,
 ) {
     /**
      * Whether this was watched as it was broadcast, rather than played from end to end.

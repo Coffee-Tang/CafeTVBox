@@ -89,7 +89,7 @@ data class WorkMatch(
  * by getting nothing back rather than by getting something plausible.
  */
 fun matchesFor(name: MediaName, works: List<CatalogueWork>): List<WorkMatch> {
-    val searched = listOfNotNull(name.title, name.otherTitle).map(::comparably).filter(String::isNotEmpty)
+    val searched = listOfNotNull(name.title, name.otherTitle).map(::workKey).filter(String::isNotEmpty)
     val yearWeight = if (name is MediaName.Film) YEAR_WEIGHT_FOR_A_FILM else YEAR_WEIGHT_FOR_A_SEASON
     return works
         .filter { it.kind == name.kind }
@@ -114,7 +114,7 @@ fun matchesFor(name: MediaName, works: List<CatalogueWork>): List<WorkMatch> {
  * actually found the work differs from work to work.
  */
 private fun titleSimilarity(searched: List<String>, work: CatalogueWork): Double {
-    val offered = listOf(work.title, work.originalTitle).map(::comparably).filter(String::isNotEmpty)
+    val offered = listOf(work.title, work.originalTitle).map(::workKey).filter(String::isNotEmpty)
     return searched.maxOfOrNull { one ->
         offered.maxOfOrNull { other -> similarity(one, other) } ?: 0.0
     } ?: 0.0
@@ -186,12 +186,6 @@ private fun rewrites(one: String, other: String): Int {
     }
     return previous[other.length]
 }
-
-/**
- * A title with everything that spells it rather than names it taken out, so that `Silicon.Valley`,
- * `Silicon Valley` and `silicon valley` are one title and not three.
- */
-private fun comparably(title: String): String = title.lowercase().filter(Char::isLetterOrDigit)
 
 /**
  * Nothing short of every character agreeing counts as the same title. [similarity] answers exactly

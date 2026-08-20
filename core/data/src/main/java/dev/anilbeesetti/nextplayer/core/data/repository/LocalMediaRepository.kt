@@ -5,9 +5,9 @@ import android.net.Uri
 import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.anilbeesetti.nextplayer.core.common.extensions.mapAsync
+import dev.anilbeesetti.nextplayer.core.data.history.foldByWork
 import dev.anilbeesetti.nextplayer.core.data.mappers.toAudioStreamInfo
 import dev.anilbeesetti.nextplayer.core.data.mappers.toFolder
-import dev.anilbeesetti.nextplayer.core.data.mappers.toRecentMedium
 import dev.anilbeesetti.nextplayer.core.data.mappers.toSubtitleStreamInfo
 import dev.anilbeesetti.nextplayer.core.data.mappers.toVideo
 import dev.anilbeesetti.nextplayer.core.data.mappers.toVideoState
@@ -58,10 +58,13 @@ class LocalMediaRepository @Inject constructor(
     }
 
     override fun observeRecentlyPlayed(limit: Int): Flow<List<RecentMedium>> =
-        mediumStateDao.getRecentlyPlayed(limit).map { states -> states.map { it.toRecentMedium() } }
+        mediumStateDao.getRecentlyPlayed().map { played -> played.foldByWork(limit) }
 
     override suspend fun removeFromRecentlyPlayed(mediaKey: String) {
-        mediumStateDao.delete(listOf(mediaKey))
+        // History shows a work once, so this has to forget every episode behind that one entry.
+        if (mediumStateDao.deleteWorkOf(mediaKey) == 0) {
+            mediumStateDao.delete(listOf(mediaKey))
+        }
     }
 
     override suspend fun clearRecentlyPlayed() {
