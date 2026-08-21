@@ -1,123 +1,58 @@
-![Next player banner](fastlane/metadata/android/en-US/images/featureGraphic.png)
+# CafePlayer
 
-# Next Player
+面向电视和盒子的本地 / 网盘播放器。基于 [Next Player](https://github.com/anilbeesetti/nextplayer) 分叉，用 Kotlin 和 Jetpack Compose 编写。
 
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/anilbeesetti/nextplayer.svg?logo=github&label=GitHub&cacheSeconds=3600)](https://github.com/anilbeesetti/nextplayer/releases/latest)
-[![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Ddev.anilbeesetti.nextplayer%26l%3DGoogle%2520Play%26m%3Dv%24version)](https://play.google.com/store/apps/details?id=dev.anilbeesetti.nextplayer)
-[![IzzyOnDroid](https://img.shields.io/endpoint?url=https://apt.izzysoft.de/fdroid/api/v1/shield/dev.anilbeesetti.nextplayer)](https://apt.izzysoft.de/fdroid/index/apk/dev.anilbeesetti.nextplayer)
-[![F-Droid](https://img.shields.io/f-droid/v/dev.anilbeesetti.nextplayer?logo=f-droid&label=F-Droid&cacheSeconds=3600)](https://f-droid.org/packages/dev.anilbeesetti.nextplayer)
-[![GitHub all releases](https://img.shields.io/github/downloads/anilbeesetti/nextplayer/total?logo=github&cacheSeconds=3600)](https://github.com/anilbeesetti/nextplayer/releases/latest)
-[![Google Play](https://img.shields.io/endpoint?color=green&logo=google-play&url=https%3A%2F%2Fplay.cuzi.workers.dev%2Fplay%3Fi%3Ddev.anilbeesetti.nextplayer%26l%3Ddownloads%26m%3D%24totalinstalls)](https://play.google.com/store/apps/details?id=dev.anilbeesetti.nextplayer)
-[![Weblate project translated](https://img.shields.io/weblate/progress/next-player?logo=weblate&logoColor=white&cacheSeconds=36000)](https://hosted.weblate.org/engage/next-player/)
+应用 ID 为 `tv.cafesoft.player`，可与上游 Next Player 并排安装。源码包名仍保留上游，方便后续合并。
 
-Next Player is an Android native video player written in Kotlin. It provides a simple and easy-to-use interface for users to play videos on their
-Android devices
+当前仍在开发中，遇到问题请开 Issue。
 
-**This project is still in development and is expected to have bugs. Please report any bugs you find in
-the [Issues](https://github.com/anilbeesetti/nextplayer/issues) section.**
+## 功能
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>](https://play.google.com/store/apps/details?id=dev.anilbeesetti.nextplayer)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png" alt="Get it on IzzyOnDroid" height="80">](https://apt.izzysoft.de/fdroid/index/apk/dev.anilbeesetti.nextplayer)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/dev.anilbeesetti.nextplayer/)
+- 本机媒体库：按文件夹或文件浏览，支持树状 / 文件夹 / 文件视图
+- 搜索：按本机视频文件名、扩展名和路径查找（不搜片架标题，也不搜 TMDB）
+- 影视库：把网盘文件夹标成剧集或电影，按作品和剧集展示；后台用 TMDB 补海报和简介
+- 网络存储：SMB / FTP / SFTP / WebDAV
+- 播放器：音轨和字幕选择、外挂字幕、字幕延迟、倍速、进度记忆
+- 手势：左右滑动调节亮度 / 音量，横向滑动跳转，缩放
+- 遥控器：电视焦点、片架、播放中选剧
+- 中文标题可用拼音字母检索，不必在候选列表里逐项走
+- 画中画、后台播放
+- 软件解码 H.264 / HEVC（视设备能力）
+- 无广告、无多余权限
 
-> For Github releases, you can verify the app with the SHA-256 fingerprint certificate: `D3:7C:AB:F3:67:6C:F5:82:24:FB:24:2C:8D:D2:09:12:9D:05:88:03:79:29:5F:AA:A6:D0:FB:60:7B:EC:13:1B`
+## 支持的格式
 
-## Screenshots
+- **视频**：H.263、H.264 AVC、H.265 HEVC、MPEG-4 SP、VP8、VP9、AV1（取决于设备）
+- **音频**：Vorbis、Opus、FLAC、ALAC、PCM/WAVE、MP1/MP2/MP3、AMR、AAC、AC-3、E-AC-3、DTS、DTS-HD、TrueHD（部分由 ExoPlayer FFmpeg 扩展提供）
+- **字幕**：SRT、SSA、ASS、TTML、VTT、DVB（SSA/ASS 样式支持有限）
 
-### Phone
+## 构建
 
-<div style="width:100%; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+需要 **JDK 17**，用仓库里的 Gradle Wrapper：
 
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width=19% alt="Home folders">](fastlane/metadata/android/en-US/images/phoneScreenshots/1.png)
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width=19% alt="Demo folder videos">](fastlane/metadata/android/en-US/images/phoneScreenshots/2.png)
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width=19% alt="Quick settings">](fastlane/metadata/android/en-US/images/phoneScreenshots/3.png)
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width=19% alt="Grid view">](fastlane/metadata/android/en-US/images/phoneScreenshots/4.png)
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width=19% alt="Search results">](fastlane/metadata/android/en-US/images/phoneScreenshots/6.png)
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width=19% alt="Add network connection">](fastlane/metadata/android/en-US/images/phoneScreenshots/7.png)
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8.png" width=19% alt="Appearance settings">](fastlane/metadata/android/en-US/images/phoneScreenshots/8.png)
-</div>
+```bash
+./gradlew assembleDebug
+./gradlew :app:installDebug
+./gradlew test
+./gradlew ktlintCheck
+```
 
-### Player UI
+最低 Android 版本为 API 23。调试包应用 ID 带 `.debug` 后缀。
 
-<div style="width:100%; display:flex; justify-content:space-between;">
+## TMDB
 
-[<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width=49% alt="Phone player controls">](fastlane/metadata/android/en-US/images/phoneScreenshots/5.png)
-[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/3.png" width=49% alt="TV player controls">](fastlane/metadata/android/en-US/images/tvScreenshots/3.png)
-</div>
+影视库海报和简介来自 TMDB。在根目录 `local.properties` 里写上自己的密钥（不要提交这个文件）：
 
-### Android TV
+```properties
+tmdb.api.key=你的密钥
+```
 
-<div style="width:100%; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+不配密钥也可以编译和运行；绑定片库时会提示没有密钥，而不会去请求 TMDB。
 
-[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/1.png" width=49% alt="TV home folders">](fastlane/metadata/android/en-US/images/tvScreenshots/1.png)
-[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/2.png" width=49% alt="TV demo folder videos">](fastlane/metadata/android/en-US/images/tvScreenshots/2.png)
-[<img src="fastlane/metadata/android/en-US/images/tvScreenshots/4.png" width=49% alt="TV appearance settings">](fastlane/metadata/android/en-US/images/tvScreenshots/4.png)
-</div>
+## 致谢
 
-## Supported formats
+本项目基于 [Next Player](https://github.com/anilbeesetti/nextplayer)（GPL-3.0）。界面和能力上的参考还包括 Findroid、Just (Video) Player、LibreTube 等开源项目。
 
-- **Video**: H.263, H.264 AVC (Baseline Profile; Main Profile on Android 6+), H.265 HEVC, MPEG-4 SP, VP8, VP9, AV1
-    - Support depends on Android device
-- **Audio**: Vorbis, Opus, FLAC, ALAC, PCM/WAVE (μ-law, A-law), MP1, MP2, MP3, AMR (NB, WB), AAC (LC, ELD, HE; xHE on Android 9+), AC-3, E-AC-3, DTS,
-  DTS-HD, TrueHD
-    - Support provided by ExoPlayer FFmpeg extension
-- **Subtitles**: SRT, SSA, ASS, TTML, VTT, DVB
-    - SSA/ASS has limited styling support see [this issue](https://github.com/google/ExoPlayer/issues/8435)
+## 许可证
 
-## Features
-
-- Native Android app with simple and easy-to-use interface
-- Completely free and open source and without any ads or excessive permissions
-- Software decoders for h264 and hevc
-- Audio/Subtitle track selection
-- Vertical swipe to change brightness (left) / volume (right)
-- Horizontal swipe to seek through video
-- [Material 3 (You)](https://m3.material.io/) support
-- Media picker with tree, folder and file view modes
-- Play videos from url
-- Play videos from storage access framework (Android Document picker)
-- Control playback speed
-- External Subtitle support
-- Zoom gesture
-- Picture-in-picture mode
-- Background playback
-- Android TV version
-- Search Functionality
-- Subtitle delay
-- Network storage support (SMB/FTP/SFTP/WebDAV)
-
-## Planned Features
-
-- External Audio support
-- Online subtitles download
-
-## Contributing
-
-Contributions are welcome!
-
-### Translating
-
-You can help translate Next Player on [Hosted Weblate](https://hosted.weblate.org/engage/next-player/).
-
-[![Translate status](https://hosted.weblate.org/widgets/next-player/-/multi-auto.svg)](https://hosted.weblate.org/engage/next-player/)
-
-## Credits
-
-### Open Source Projects
-
-- [Findroid](https://github.com/jarnedemeulemeester/findroid)
-- [Just (Video) Player](https://github.com/moneytoo/Player)
-- [LibreTube](https://github.com/libre-tube/LibreTube)
-- [ReadYou](https://github.com/Ashinch/ReadYou)
-- [Seal](https://github.com/JunkFood02/Seal)
-- ...
-
-### Special Thanks
-
-[<img src="https://hosted.weblate.org/widgets/next-player/-/287x66-white.png"  width="200"/>](https://hosted.weblate.org/engage/next-player/)
-
-Thanks to **Weblate** for providing free hosting for the project.
-
-## License
-
-Next Player is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for more information.
+CafePlayer 使用 GNU General Public License v3.0，详见 [LICENSE](LICENSE)。
